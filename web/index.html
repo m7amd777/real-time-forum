@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tekken Gaming Forum</title>
+    <link rel="icon" href="/favicon.ico">
+    <link rel="stylesheet" href="/static/css/home.css">
+    <link rel="stylesheet" href="/static/css/home2.css">
+    <link rel="stylesheet" href="/static/css/makepost.css" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Poppins:wght@400;500;600;700&display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet" />
+</head>
+
+<body>
+
+    <nav class="topnav">
+        <a href="/home" id="home" style="font-family:tekk; font-size:30px; display: fit-content;">
+            TEKKEN FORUM
+        </a>
+        <button id="add" class="create-btn">Add Post</button>
+        <input type="checkbox" class="sidebar-toggle" id="sidebar-toggle" style="display:none;">
+        <label for="sidebar-toggle" class="sidebar-toggle-label">
+            <span class="material-icons">menu</span>
+        </label>
+    </nav>
+
+
+    <!-- <label for="sidebar-toggle" class="overlay" aria-hidden="true"></label> -->
+
+    <div class="main-content">
+        <div class="post-container" id="mainarea">
+            <!-- example file -->
+        </div>
+        <aside class="side-bar">
+            <div class="categories-bar2">
+                <h2>Look Into:</h2>
+                <h1>Gaming</h1>
+                <h1>Life</h1>
+                <h1>Coding</h1>
+                <h1>Memes</h1>
+            </div>
+            <div class="filters-bar2">
+                <h2>View Your:</h2>
+                <a href="/posts?user_posts=my_posts" style="text-decoration:none;">
+                    <h1>Created Posts</h1>
+                </a>
+                <a href="/posts?user_posts=liked" style="text-decoration:none;">
+                    <h1>Liked Posts</h1>
+                </a>
+            </div>
+            <div class="user-bar">
+                <h2> User Actions</h2>
+                {{if .IsGuest}}
+                <a href="/login" style="text-decoration:none;">
+                    <h1>Login</h1>
+                </a>
+                {{else}}
+                <a href="/logout" style="text-decoration:none;">
+                    <h1>Logout</h1>
+                </a>
+                {{end}}
+            </div>
+        </aside>
+
+    </div>
+
+
+
+    <script src="/static/js/app.js"></script>
+</body>
+
+</html>

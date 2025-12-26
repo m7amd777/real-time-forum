@@ -11,7 +11,8 @@ import(
 func main() {
 	// Entry point for the server
 	// database.InitDB()
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("../web/css"))))
+	//./ is working anyways	
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("../web/"))))
 
 	http.HandleFunc("/", homeHandler)
 
