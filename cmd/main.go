@@ -7,7 +7,7 @@ import(
 	"html/template"
 )
 
-// "real-time-forum/internal/database"
+// "real-time-forum/internal/databasedsdsds"
 func main() {
 	// Entry point for the server
 	// database.InitDB()
