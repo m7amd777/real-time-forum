@@ -1,3 +1,5 @@
+/* when using live server fro frontend development, swich path relative to html file chosen. */
+
 @font-face {
     font-family: tekk;
     src: url('/static/assets/tarrgetexpandital.ttf');
@@ -100,6 +102,12 @@ body {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%)
+}
+
+.create-btn--relative {
+    position: relative;
+    top: 50%;
+    left: 50%;
 }
 
 .create-btn:hover {

@@ -15,6 +15,7 @@ document.addEventListener("click", (e) => console.log("clicked:", e.target));
 let maincontent = document.getElementById("mainarea")
 let addPostBtn = document.getElementById("add")
 let homeBtn = document.getElementById("home")
+let chatBtn = document.getElementById('chatBtn')
 
 addPostBtn.addEventListener("click", (e) => {
   e.preventDefault();
@@ -24,6 +25,11 @@ addPostBtn.addEventListener("click", (e) => {
 homeBtn.addEventListener("click", (e) => {
   e.preventDefault();
   homeRender();
+});
+
+chatBtn.addEventListener("click", (e) => {
+    e.preventDefault();
+    chatRender();
 });
 
 
@@ -134,4 +140,35 @@ function homeRender() {
                     </div>
                 </div>
             </div>`
+}
+
+
+function chatRender() {
+    console.log("rendering the chat")
+    maincontent.innerHTML = `<div class="chatarea">
+                <div class= "usersList">
+                    <ul>
+                        <li class="userContact">
+                            <span class="contactUsername">@Mo</span>
+                            <span class ="contactStatus online">Online</span>
+                        </li>
+                    </ul>
+
+                </div>
+                <div class= "chatspace">
+                    <div class ="usercard">
+                        <p>Mohamed - active</p>
+                        
+                    </div>
+                    <!-- scrollable -->
+                    <div class ="chatsection">
+                        <h3 class="from">yo broski</h3>
+                        <h3 class="to">How are you man</h3>
+                    </div>
+                    <div class ="inputbar">
+                        <textarea class="entry"></textarea>
+                        <button id="sendBtn">Send</button>
+                    </div>
+                </div>
+            </div>`;
 }
