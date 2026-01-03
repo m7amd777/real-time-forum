@@ -5,16 +5,28 @@ import(
 	"fmt"
 	"net/http"
 	"html/template"
+	"real-time-forum/internal/handlers"
+	"real-time-forum/internal/database"
+
 )
 
 // "real-time-forum/internal/databasedsdsds"
 func main() {
 	// Entry point for the server
-	// database.InitDB()
+	database.InitDB()
 	//./ is working anyways	
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("../web/"))))
 
 	http.HandleFunc("/", homeHandler)
+
+	// define the endpoint for the posts, this will be used by the frontend to fetch data and populate the js views
+	http.HandleFunc("/api/posts", handlers.PostsHandler) 
+
+	http.HandleFunc("/api/comments", handlers.CommentsHandler)
+	http.HandleFunc("/api/register", handlers.RegisterHandler)
+
+	http.HandleFunc("/api/login", handlers.LoginHandler)
+	http.HandleFunc("/api/logout", handlers.LogoutHandler)
 
 
 

@@ -1,0 +1,45 @@
+currently for the spa logic
+
+main.js imports routes.js
+
+--MAIN.JS
+just routers and just listens to global events like changing page
+
+--ROUTER.JS
+handles logic of knowing what is the link we are going to and which page to render
+
+
+--VIEWS SECTION
+the views section returns for now HTML ONLY (just for testing)
+
+
+note: i did not implement the auth view yet --> look into forum security repo
+i left the html for now
+
+
+
+but a better example for implementation of VIEWS is something like this. so we can mount specific code to every page
+so we return an object
+// /js/views/Thread.js
+export default function ThreadView(params) {
+  return {
+    render: async () => `
+      <h1>Thread ${params.id}</h1>
+      <button id="loadMore">Load more</button>
+    `,
+    mount: () => {
+      // view-specific code here
+      const btn = document.querySelector("#loadMore");
+      btn.addEventListener("click", onLoadMore);
+    },
+    unmount: () => {
+      // cleanup (remove listeners, stop intervals, etc.)
+      const btn = document.querySelector("#loadMore");
+      btn?.removeEventListener("click", onLoadMore);
+    }
+  };
+}
+
+function onLoadMore() {
+  console.log("loading more...");
+}

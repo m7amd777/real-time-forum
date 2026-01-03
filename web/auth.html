@@ -1,0 +1,43 @@
+<main class="auth-card card">
+    <h1 class="auth-title" >Sign in</h1>
+    <p class="auth-subtitle">Welcome back! Please enter your details.</p>
+    {{if .IsError}}
+      <div class="error-message">
+        <span class="error-icon"><i class="fa-solid fa-exclamation-circle"></i></span>
+        {{.Message}}
+      </div>
+    {{end}}
+    <form class="form" action="/login" method="POST">
+      <div class="field icon-left">
+        <i class="fa-solid fa-user field-icon" aria-hidden="true"></i>
+        <input class="input" id="username" name="username" type="text" placeholder=" " minlength="3" required />
+        <label for="username" class="label">Username</label>
+      </div>
+
+      <div class="field icon-left icon-right">
+        <i class="fa-solid fa-lock field-icon" aria-hidden="true"></i>
+        <input class="input" id="password" name="password" type="password" placeholder=" " minlength="6" required />
+        <label for="password" class="label">Password</label>
+      </div>
+
+      <button class="btn btn-primary" type="submit">
+      Sign in
+      </button>
+    </form>
+
+    <p class="or-divider">or</p>
+
+    <div class="social-stack">
+      <a href="/login/google" class="btn-social google">
+        <i class="fab fa-google"></i>
+        Sign in with Google
+      </a>
+
+      <a href="/login/github" class="btn-social github">
+        <i class="fab fa-github"></i>
+        Sign in with GitHub
+      </a>
+    </div>
+
+    <p class="below">Don't have an account? <a href="/register">Sign up</a></p>
+  </main>

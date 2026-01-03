@@ -2,3 +2,4 @@
 package models
 
 // User model here
+
