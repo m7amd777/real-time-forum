@@ -7,6 +7,7 @@ import(
 	"html/template"
 	"real-time-forum/internal/handlers"
 	"real-time-forum/internal/database"
+	"real-time-forum/internal/cookie"
 
 )
 
@@ -48,8 +49,14 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Render template
-	if err := tmpl.Execute(w, nil); err != nil {
+	// Render template with authentication status
+	data := struct{
+		IsAuthenticated bool
+	}{
+		IsAuthenticated: cookie.IsAuthenticated(r),
+	}
+
+	if err := tmpl.Execute(w, data); err != nil {
 		fmt.Println("ansabsbas",err)
 		http.Error(w, "Error rendering template", http.StatusInternalServerError)
 		return

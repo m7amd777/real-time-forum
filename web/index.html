@@ -24,11 +24,12 @@
         <a href="/" id="home" style="font-family:tekk; font-size:30px; display: fit-content;">
             TEKKEN FORUM
         </a>
-        <button id="add" class="create-btn" data-action="Create">Add Post</button>
+       
         <input type="checkbox" class="sidebar-toggle" id="sidebar-toggle" style="display:none;">
         <label for="sidebar-toggle" class="sidebar-toggle-label">
             <span class="material-icons">menu</span>
         </label>
+        
     </nav>
 
 
@@ -39,9 +40,18 @@
             <!-- example file -->
         </div>
         <aside class="side-bar">
-            <div class="categories-bar2">
+
+            create side bar id content
+
+      
+         
+                <h2> User Actions</h2>
+                {{if .IsAuthenticated}}
+                   <div class="categories-bar2">
                 <h2>LIVE CHAT NOW (NEW)</h2>
                 <button id="chatBtn" class="create-btn create-btn--relative" data-action="Chat">Check Messages</button>
+                <button id="add" class="create-btn" data-action="Create">Add Post</button>
+
             </div>
             <div class="categories-bar2">
                 <h2>Look Into:</h2>
@@ -60,15 +70,12 @@
                 </a>
             </div>
             <div class="user-bar">
-                <h2> User Actions</h2>
-                {{if .IsGuest}}
-             <!--THIS WHERE THE LOGIN SHOULD BE. WILL BE ADDED LATER-->
+                   <a href="/logout" style="text-decoration:none;">
+                    <h1>Logout</h1>
+                </a>
                 {{else}}
                    <a href="/login" data-link="login" style="text-decoration:none;">
                     <h1>Login</h1>
-                </a>
-                <a href="/logout" style="text-decoration:none;">
-                    <h1>Logout</h1>
                 </a>
                 {{end}}
             </div>

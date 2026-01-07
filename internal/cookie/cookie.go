@@ -3,7 +3,7 @@ package cookie
 import (
 	"fmt"
 	"net/http"
-	"time"
+	//"time"
 	"real-time-forum/internal/database/queries"
 
 )
@@ -13,7 +13,7 @@ import (
 func IsAuthenticated(r *http.Request) bool {
 	cookie, err := r.Cookie("sessionID")
 	if err != nil {
-		fmt.Println("error in authenticate.go is:", err)
+		fmt.Println("error in cookie.go is:", err)
 		return false
 	}
 
@@ -25,19 +25,12 @@ func IsAuthenticated(r *http.Request) bool {
 }
 
 func DeleteCookie(w http.ResponseWriter, r *http.Request) {
-	cookie, err := r.Cookie("sessionID")
-	if err != nil {
-		return
-	}
-
-	cookie = &http.Cookie{
-		Name:     "sessionID",
-		Value:    "",
-		MaxAge:   -1,
-		Expires:  time.Now().Add(-1 * time.Hour),
-		HttpOnly: true,
-	}
-	http.SetCookie(w, cookie)
-
+    http.SetCookie(w, &http.Cookie{
+        Name:     "sessionID",
+        Value:    "",
+        Path:     "/",
+        MaxAge:   -1,  
+        HttpOnly: true,
+    })
 }
 
