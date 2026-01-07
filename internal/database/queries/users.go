@@ -63,28 +63,29 @@ func CreateUser(username, email, password string) error {
 	return err
 }
 
-func CheckLoginCredentials(email, password string) (bool, error) {
+func CheckLoginCredentials(identifier, password string) (bool, string, error) {
 	var storedHash string
+	var email string
 
 	err := database.DB.QueryRow(`
-		SELECT password_hash
+		SELECT password_hash, email
 		FROM users
-		WHERE email = ?
-	`, email).Scan(&storedHash)
+		WHERE email = ? OR username = ?
+	`, identifier, identifier).Scan(&storedHash, &email)
 
-	// email does not exist
+	// user does not exist
 	if err == sql.ErrNoRows {
-		return false, nil
+		return false, "", nil
 	}
 
 	if err != nil {
-		return false, err
+		return false, "", err
 	}
 
 	// plain-text comparison for now (replace with proper hashing later)
 	if storedHash != password {
-		return false, nil
+		return false, "", nil
 	}
 
-	return true, nil
+	return true, email, nil
 }

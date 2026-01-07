@@ -28,6 +28,9 @@ func main() {
 	http.HandleFunc("/api/login", handlers.LoginHandler)
 	http.HandleFunc("/api/logout", handlers.LogoutHandler)
 
+	http.HandleFunc("/api/auth/status", handlers.AuthStatusHandler)
+
+
 
 
 	// Start server

@@ -83,11 +83,7 @@ export default async function ThreadView() {
 
         <!-- COMMENT FORM (always visible) -->
         <div class="comment-input-container">
-            <div class="comment-user">
-                <div class="username">
-                    <h2>@you</h2>
-                </div>
-            </div>
+          
 
             <form class="comment-input-section">
                 <input type="hidden" name="post_id" value="${escapeHtml(postId)}">

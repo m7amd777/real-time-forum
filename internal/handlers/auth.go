@@ -14,7 +14,6 @@ import (
 	"real-time-forum/internal/models"
 )
 
-
 // Auth handler here
 
 //receives form data through an HTTP request sent by the frontend (JS)
@@ -92,7 +91,8 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	exists, err := queries.EmailExists(req.Email)
+	// allow login by either email or username — check identifier exists
+	exists, err := queries.UserExists(req.Email, req.Email)
 	if err != nil {
 		models.SendJSONError(w, http.StatusInternalServerError, "Server error")
 		return
@@ -106,18 +106,18 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ok, err := queries.CheckLoginCredentials(req.Email, req.Password)
+	ok, userEmail, err := queries.CheckLoginCredentials(req.Email, req.Password)
 	if err != nil {
 		models.SendJSONError(w, http.StatusInternalServerError, "Server error")
 		return
 	}
 
 	if !ok {
-		models.SendJSONError(w, http.StatusUnauthorized, "Invalid email or password")
+		models.SendJSONError(w, http.StatusUnauthorized, "Invalid credentials")
 		return
 	}
 
-	cookie, err := queries.AddSession(req.Email)
+	cookie, err := queries.AddSession(userEmail)
 	if err != nil {
 		models.SendJSONError(w, http.StatusInternalServerError, "Failed to create session")
 		return
@@ -158,4 +158,21 @@ func LogoutHandler(w http.ResponseWriter, r *http.Request) {
 		"message": "Logout successful",
 	})
 
+}
+
+func AuthStatusHandler(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if cookie.IsAuthenticated(r) {
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(map[string]bool{
+			"authenticated": true,
+		})
+		return
+	}
+
+	w.WriteHeader(http.StatusUnauthorized)
+	json.NewEncoder(w).Encode(map[string]bool{
+		"authenticated": false,
+	})
 }
