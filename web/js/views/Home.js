@@ -13,11 +13,12 @@ export default async function HomeView() {
   }
 
   return `
-    <div class="home">
       ${posts
       .map(
         (p) => `
         <div class="block3" id="post-${p.id}">
+
+
           <div class="frame">
             <div class="username">
               <h3>@${escapeHtml(p.author)} <span class="post-date"> • ${formatDate(
@@ -40,17 +41,6 @@ export default async function HomeView() {
             .join("")}
 </div>
               <div class="post-engagement">
-                <div class="post-like-dislike">
-                  <button class="like-btn" data-post="${p.id}">
-                    <span class="material-icons">thumb_up</span>
-                    <span>Like</span>
-                  </button>
-                  <button class="dislike-btn" data-post="${p.id}">
-                    <span class="material-icons">thumb_down</span>
-                    <span>Dislike</span>
-                  </button>
-                </div>
-
                 <div class="comments">
                   <a class="comment-btn" href="/thread?post=${p.id}" style="text-decoration:none;">
                     <span class="material-icons">comment</span>
@@ -58,13 +48,13 @@ export default async function HomeView() {
                   </a>
                 </div>
               </div>
+
             </div>
           </div>
         </div>
       `
       )
       .join("")}
-    </div>
   `;
 }
 

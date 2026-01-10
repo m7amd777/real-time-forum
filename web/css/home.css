@@ -115,6 +115,31 @@ body {
     box-shadow: 0 4px 12px rgba(40, 167, 69, 0.15);
 }
 
+
+
+.red-btn {
+    padding: 10px 20px;
+    border: none;
+    border-radius: 8px;
+    text-align: center;
+    align-self: center;
+    width: fit-content;
+    display: block;
+    background-color: #aa0404;
+    color: white;
+    font-weight: bold;
+    font-size: 17px;
+    cursor: pointer;
+    transition: all 0.3s;
+    position: relative;
+}
+
+
+
+
+
+
+
 .main-content {
     display: flex;
     flex-direction: row;
