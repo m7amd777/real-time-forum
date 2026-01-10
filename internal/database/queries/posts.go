@@ -2,10 +2,10 @@
 package queries
 
 import (
+	// "fmt"
 	"real-time-forum/internal/database"
-    "real-time-forum/internal/models"
+	"real-time-forum/internal/models"
 	"time"
-
 )
 
 // Post queries here
@@ -82,6 +82,9 @@ func GetAllPosts() ([]models.Post, error) {
 		posts = append(posts, *p)
 	}
 
+
+	// fmt.Println("THESE ARE ALL THE POSTS: ,", posts)
+
 	return posts, nil
 }
 
@@ -114,13 +117,13 @@ WHERE p.id = ?`,
 	return post, nil
 }
 
-func CreatePost(authorID int, title string, categories []string, content string) error {
+func CreatePost(authorID int, title string, categories []models.Category, content string) error {
 	
 
 	// link the post
 	result, err := database.DB.Exec(`
 		INSERT INTO posts (title, content, user_id, created_at, updated_at)
-		VALUES (?, ?, ?, NOW(), NOW())
+VALUES (?, ?, ?, DATETIME('now'), DATETIME('now'))
 	`,  title, content, authorID)
 	if err != nil {
 		return err

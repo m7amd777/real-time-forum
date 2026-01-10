@@ -1,7 +1,7 @@
 package cookie 
 
 import (
-	"fmt"
+	//"fmt"
 	"net/http"
 	//"time"
 	"real-time-forum/internal/database/queries"
@@ -13,7 +13,7 @@ import (
 func IsAuthenticated(r *http.Request) bool {
 	cookie, err := r.Cookie("sessionID")
 	if err != nil {
-		fmt.Println("error in cookie.go is:", err)
+		// fmt.Println("error in cookie.go is:", err)
 		return false
 	}
 

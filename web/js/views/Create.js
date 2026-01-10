@@ -44,7 +44,7 @@ export default async function CreateView() {
             </div>
 
             <div class="makepost-form-bottom">
-                <button class="btn btn-primary" type="submit">Post</button>
+                <button class="btn btn-primary" type="submit" >Post</button>
             </div>
         </form>
     </main>`

@@ -2,12 +2,11 @@
 package handlers
 
 import (
-	"net/http"
 	"encoding/json"
-    "real-time-forum/internal/database/queries"
-		"real-time-forum/internal/models"
-
-
+	"fmt"
+	"net/http"
+	"real-time-forum/internal/database/queries"
+	"real-time-forum/internal/models"
 )
 
 // Posts handler here
@@ -37,18 +36,29 @@ func CreatePostHandler(w http.ResponseWriter, r *http.Request){
 	err := json.NewDecoder(r.Body).Decode(&req)
 
 	if err != nil {
-		models.SendJSONError(w, http.StatusBadRequest, "Invalid request")
+		models.SendJSONError(w, http.StatusInternalServerError, "Internal Server Error: Cant decode JSON")
+				fmt.Println(err.Error())
 		return
 	}
 
-	// authorID , err := queries.GetUserIDFromSession(r)
-	// if err != nil {
-	// 	models.SendJSONError(w, http.StatusInternalServerError, "Internal Server Error")
-	// 	return
-	// }
+	authorID , err := queries.GetUserIDFromSession(r)
+	if err != nil {
+		models.SendJSONError(w, http.StatusInternalServerError, "Internal Server Error: Cant get userID from session")
+				fmt.Println(err.Error())
 
-	// exists, err := queries.CreatePost()
+		return
+	}
 
+	 e := queries.CreatePost(authorID, req.Title, req.Categories, req.Content)
+	 if e != nil {
+		models.SendJSONError(w, http.StatusInternalServerError, "Internal Server Error: Cant create post")
+				fmt.Println(e.Error())
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]string{
+		"message": "Created post successfully",
+	})
 }
 
 

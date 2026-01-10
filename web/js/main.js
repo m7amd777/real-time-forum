@@ -115,10 +115,7 @@ document.addEventListener("submit", async (e) => {
   if (formName === "create") {
     try {
 
-    } catch (e) {
-      console.error("HERE IS THE ERROR IN CREATING A POST:", e);
-
-      let res = fetch("/api/createPost", {
+       let res = await fetch("/api/createPost", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -131,7 +128,10 @@ document.addEventListener("submit", async (e) => {
         alert(result.error);
         return;
       }
-       
+            navigateTo("/");
+
+    } catch (e) {
+      console.error("HERE IS THE ERROR IN CREATING A POST:", e);
     }
   }
   console.log("form:", formName, data);
