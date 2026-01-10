@@ -16,9 +16,11 @@ func GetAllPosts()([]models.Post, error){
 	
 
  rows, err := database.DB.Query(`
-        SELECT p.id, p.title, p.content, u.username, p.created_at
+        SELECT p.id, p.title, p.content, u.username, p.created_at, c.category_id, x.name
         FROM posts p
-        JOIN users u ON p.user_id = u.id
+        JOIN users u ON p.user_id = u.id 
+		JOIN post_categories c ON p.id = c.post_id 
+		JOIN categories x ON c.category_id = 
         ORDER BY p.created_at DESC
     `)
 			if err != nil {
@@ -68,4 +70,8 @@ WHERE p.id = ?`,
 	}
 
 	return post, nil
+}
+
+func CreatePost(userID string, title string, categories []string, content string){
+
 }
