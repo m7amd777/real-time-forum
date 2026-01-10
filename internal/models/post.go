@@ -21,3 +21,10 @@ type Post struct {
 type Category struct {
 	CategoryName string `json:"category_name"`
 }
+
+
+type CreatePostRequest struct {
+	Title      string   `json:"title"`
+	Content    string   `json:"content"`
+	Categories []string `json:"categories"`
+}	

@@ -18,12 +18,13 @@ export default async function CreateView() {
                     <fieldset class="post-categories" aria-describedby="category-help">
                         <legend class="label">Choose Categories</legend>
 
-                        <select id="category-select" name="category" class="input multi-select" multiple required
+                        <select id="category-select" name="categories" class="input multi-select" multiple required
                             aria-describedby="category-help">
-                            <option value="gaming">Gaming</option>
-                            <option value="life">Life</option>
-                            <option value="coding">Coding</option>
-                            <option value="memes">Memes</option>
+                            <option value="General">General</option>
+                            <option value="Technology">Technology</option>
+                            <option value="Sports">Sports</option>
+                            <option value="Music">Music</option>
+                            <option value="Gaming">Gaming</option> 
                         </select>
 
                         <small class="help-text" id="category-help">

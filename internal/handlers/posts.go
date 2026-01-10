@@ -22,8 +22,7 @@ w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(posts)
 }
 
-func CreatePostHandler(w http.ResponseWriter, r *http.Request){
-
+func CreatePostHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 
 	if r.Method != http.MethodPost {
@@ -31,28 +30,33 @@ func CreatePostHandler(w http.ResponseWriter, r *http.Request){
 		return
 	}
 
-	var req models.Post
+	var req models.CreatePostRequest
 
-	err := json.NewDecoder(r.Body).Decode(&req)
-
-	if err != nil {
-		models.SendJSONError(w, http.StatusInternalServerError, "Internal Server Error: Cant decode JSON")
-				fmt.Println(err.Error())
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		models.SendJSONError(w, http.StatusBadRequest, "Invalid JSON")
+		fmt.Println(err.Error())
 		return
 	}
 
-	authorID , err := queries.GetUserIDFromSession(r)
+	authorID, err := queries.GetUserIDFromSession(r)
 	if err != nil {
-		models.SendJSONError(w, http.StatusInternalServerError, "Internal Server Error: Cant get userID from session")
-				fmt.Println(err.Error())
-
+		models.SendJSONError(w, http.StatusUnauthorized, "Unauthorized")
+		fmt.Println(err.Error())
 		return
 	}
 
-	 e := queries.CreatePost(authorID, req.Title, req.Categories, req.Content)
-	 if e != nil {
-		models.SendJSONError(w, http.StatusInternalServerError, "Internal Server Error: Cant create post")
-				fmt.Println(e.Error())
+	var categories []models.Category
+	for _, name := range req.Categories {
+		categories = append(categories, models.Category{
+			CategoryName: name,
+		})
+	}
+
+	fmt.Println("Wrapped categories:", categories)
+
+	if err := queries.CreatePost(authorID, req.Title, categories, req.Content); err != nil {
+		models.SendJSONError(w, http.StatusInternalServerError, "Could not create post")
+		fmt.Println(err.Error())
 		return
 	}
 

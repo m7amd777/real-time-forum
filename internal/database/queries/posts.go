@@ -3,6 +3,7 @@ package queries
 
 import (
 	// "fmt"
+	"fmt"
 	"real-time-forum/internal/database"
 	"real-time-forum/internal/models"
 	"time"
@@ -134,13 +135,17 @@ VALUES (?, ?, ?, DATETIME('now'), DATETIME('now'))
 		return err
 	}
 
+	fmt.Println("These are the categories passed here: ", categories)
+
 	// link the categories
 	for _, catName := range categories {
 		var categoryID int
 
+		fmt.Println("BOOOOOOM", catName.CategoryName)
+
 		err := database.DB.QueryRow(`
 			SELECT id FROM categories WHERE name = ?
-		`, catName).Scan(&categoryID)
+		`, catName.CategoryName).Scan(&categoryID)
 
 		if err != nil {
 			return err

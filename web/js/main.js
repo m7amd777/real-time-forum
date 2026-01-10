@@ -58,8 +58,18 @@ document.addEventListener("submit", async (e) => {
 
   const formName = form.dataset.form;
 
-  const data = Object.fromEntries(new FormData(form))
+  let data = Object.fromEntries(new FormData(form))
+    let formData = new FormData(form);
 
+
+
+   if (formName === "create") {
+    data = {
+      title: formData.get("title"),
+      content: formData.get("content"),
+      categories: formData.getAll("categories") // since this cannot handle multiple form enteries 
+    };
+  }
   if (formName === "register") {
     try {
       console.log("inside the try block of the register form")
