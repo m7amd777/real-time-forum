@@ -4,7 +4,8 @@ package queries
 import (
 	"real-time-forum/internal/database"
     "real-time-forum/internal/models"
-	"fmt"
+	"time"
+
 )
 
 // Post queries here
@@ -12,11 +13,9 @@ import (
 // fetches all the posts and returns an array of structs (of type Post)
 
 
-func GetAllPosts()([]models.Post, error){
-	
-
- rows, err := database.DB.Query(`
-        	SELECT
+func GetAllPosts() ([]models.Post, error) {
+	rows, err := database.DB.Query(`
+		SELECT
 			p.id,
 			p.title,
 			p.content,
@@ -29,26 +28,63 @@ func GetAllPosts()([]models.Post, error){
 		JOIN categories x ON pc.category_id = x.id
 		ORDER BY p.created_at DESC
 	`)
-			if err != nil {
-			fmt.Println("error occured getting all posts: ", err)
-			return  nil, err
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	postMap := make(map[int]*models.Post)
+
+	for rows.Next() {
+		var (
+			postID    int
+			title     string
+			content   string
+			author    string
+			createdAt time.Time
+			catName   string
+		)
+
+		err := rows.Scan(
+			&postID,
+			&title,
+			&content,
+			&author,
+			&createdAt,
+			&catName,
+		)
+		if err != nil {
+			return nil, err
 		}
 
-		defer rows.Close()
-
-		var posts []models.Post
-
-		for rows.Next(){
-			var post models.Post 
-			if err := rows.Scan(&post.ID, &post.Title, &post.Content, &post.Author, &post.CreatedAt); err != nil{
-				continue
+		// create post if not exists
+		if _, exists := postMap[postID]; !exists {
+			postMap[postID] = &models.Post{
+				ID:        postID,
+				Title:     title,
+				Content:   content,
+				Author:    author,
+				CreatedAt: createdAt,
+				Categories: []models.Category{},
 			}
-			posts = append(posts, post)
 		}
 
-	
+		// append category
+		postMap[postID].Categories = append(
+			postMap[postID].Categories,
+			models.Category{CategoryName: catName},
+		)
+	}
+
+	// convert map → slice
+	var posts []models.Post
+	for _, p := range postMap {
+		posts = append(posts, *p)
+	}
+
 	return posts, nil
 }
+
 
 
 func GetPost(postID int) (models.Post, error) {
