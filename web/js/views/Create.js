@@ -5,7 +5,7 @@ export default async function CreateView() {
             <p class="post-subtitle">Share your thoughts with the community.</p>
         </div>
 
-        <form class="form-horizontal" method="POST" action="/create-post">
+        <form class="form-horizontal" data-form="create">
             <div class="makepost-form-row">
                 <!-- Left column -->
                 <div class="makepost-form-left">

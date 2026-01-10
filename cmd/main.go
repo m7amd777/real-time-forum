@@ -30,6 +30,7 @@ func main() {
 	http.HandleFunc("/api/logout", handlers.LogoutHandler)
 
 	http.HandleFunc("/api/auth/status", handlers.AuthStatusHandler)
+	http.HandleFunc("/api/createPost", handlers.CreatePostHandler)
 
 
 

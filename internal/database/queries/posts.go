@@ -114,14 +114,14 @@ WHERE p.id = ?`,
 	return post, nil
 }
 
-func CreatePost(userID int, title string, categories []string, content string) error {
+func CreatePost(authorID int, title string, categories []string, content string) error {
 	
 
 	// link the post
 	result, err := database.DB.Exec(`
-		INSERT INTO posts (user_id, title, content, created_at)
-		VALUES (?, ?, ?, NOW())
-	`, userID, title, content)
+		INSERT INTO posts (title, content, user_id, created_at, updated_at)
+		VALUES (?, ?, ?, NOW(), NOW())
+	`,  title, content, authorID)
 	if err != nil {
 		return err
 	}

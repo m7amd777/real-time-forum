@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"real-time-forum/internal/database"
 	"time"
+	"fmt"
 
 	"github.com/google/uuid"
 )
@@ -72,4 +73,37 @@ func ValidSession(value string) bool {
 	}
 
 	return time.Now().Before(expiry)
+}
+
+func GetUserIDFromSession(r *http.Request) (int, error) {
+	// 1. Read cookie
+	cookie, err := r.Cookie("sessionID")
+	if err != nil {
+		return 0, errors.New("session cookie not found")
+	}
+
+	var userID int
+	var expires time.Time
+
+	// 2. Query session
+	err = database.DB.QueryRow(`
+		SELECT user_id, expires_at
+		FROM sessions
+		WHERE session_id = ?
+	`, cookie.Value).Scan(&userID, &expires)
+
+	if err != nil{
+		fmt.Println("This is the error ingetting user id from the cookie: ")
+	}
+
+	if err != nil {
+		return 0, err
+	}
+
+	// 3. Check expiration
+	if time.Now().After(expires) {
+		return 0, errors.New("session expired")
+	}
+
+	return userID, nil
 }

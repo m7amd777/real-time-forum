@@ -75,10 +75,10 @@ document.addEventListener("submit", async (e) => {
 
       const result = await res.json();
 
-if (!res.ok) {
-  alert(result.error);
-  return;
-}
+      if (!res.ok) {
+        alert(result.error);
+        return;
+      }
 
       navigateTo("/")
 
@@ -92,26 +92,48 @@ if (!res.ok) {
       console.log("inside the try block of the login form")
 
       const res = await fetch("/api/login", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  credentials: "include",
-  body: JSON.stringify(data)
-});
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(data)
+      });
 
-const result = await res.json();
+      const result = await res.json();
 
-if (!res.ok) {
-  alert(result.error);
-  return;
-}
+      if (!res.ok) {
+        alert(result.error);
+        return;
+      }
 
-navigateTo("/");
+      navigateTo("/");
 
     } catch (e) {
       console.error("HERE IS THE ERROR IN THE LOGIN:", e);
     }
   }
 
+  if (formName === "create") {
+    try {
+
+    } catch (e) {
+      console.error("HERE IS THE ERROR IN CREATING A POST:", e);
+
+      let res = fetch("/api/createPost", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(data)
+
+      });
+      const result = await res.json();
+
+      if (!res.ok) {
+        alert(result.error);
+        return;
+      }
+       
+    }
+  }
   console.log("form:", formName, data);
 })
 
