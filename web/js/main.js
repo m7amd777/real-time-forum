@@ -1,5 +1,5 @@
-import { router, navigateTo } from "./router.js"
-
+import { router, navigateTo, checkAuth } from "./router.js"
+import {getState, setState} from "./state.js"
 // in order to make a single page application we need routing
 // the routing is not just interacting with just buttons and direct referehes
 // we need to make sure
@@ -27,7 +27,6 @@ document.addEventListener("click", (e) => {
     navigateTo(link.href);
 
     console.log("LINK REF IS: ", link.href) //debug
-
     return;
   }
 
@@ -40,6 +39,7 @@ document.addEventListener("click", (e) => {
     // in the beginnign we wont but as we move up and intiate the chats we will definitely will
     console.log("action:", action);
     if (action == "Chat") {
+      //NAVIGATETOCHAT
     } else if (action == "Create") {
       navigateTo("/create")
     }
@@ -144,7 +144,30 @@ document.addEventListener("submit", async (e) => {
       console.error("HERE IS THE ERROR IN CREATING A POST:", e);
     }
   }
+
   console.log("form:", formName, data);
 })
 
+
+// const AuthChangeEvent = new CustomEvent("authStateEvent")
+
+// document.addEventListener(AuthChangeEvent, () => {
+//   console.log("user auth state changed")
+// })
+
+
+
+async function init() {
+  //checking if it is unknown or not
+  const isAuth = await checkAuth();
+  if (isAuth) {
+    setState({authStatus : "Auth" })
+  } else {
+    setState({authStatus : "unAuth" })
+    navigateTo("/login")
+  }
+  renderLayout();
+}
+
+// init();
 router();
