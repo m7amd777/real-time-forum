@@ -31,6 +31,9 @@ func main() {
 
 	http.HandleFunc("/api/auth/status", handlers.AuthStatusHandler)
 	http.HandleFunc("/api/createPost", handlers.CreatePostHandler)
+	http.HandleFunc("/api/createComment", handlers.CreateCommentHandler)
+
+	
 
 
 

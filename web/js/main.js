@@ -59,11 +59,11 @@ document.addEventListener("submit", async (e) => {
   const formName = form.dataset.form;
 
   let data = Object.fromEntries(new FormData(form))
-    let formData = new FormData(form);
+  let formData = new FormData(form);
 
 
 
-   if (formName === "create") {
+  if (formName === "create") {
     data = {
       title: formData.get("title"),
       content: formData.get("content"),
@@ -125,7 +125,7 @@ document.addEventListener("submit", async (e) => {
   if (formName === "create") {
     try {
 
-       let res = await fetch("/api/createPost", {
+      let res = await fetch("/api/createPost", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
@@ -138,12 +138,46 @@ document.addEventListener("submit", async (e) => {
         alert(result.error);
         return;
       }
-            navigateTo("/");
+      navigateTo("/");
 
     } catch (e) {
       console.error("HERE IS THE ERROR IN CREATING A POST:", e);
     }
   }
+
+if (formName === "createComment") {
+  try {
+    const formData = new FormData(form);
+
+    const data = {
+      post_id: parseInt(formData.get("post_id"), 10),
+      content: formData.get("content")
+    };
+
+    const res = await fetch("/api/createComment", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(data)
+    });
+
+    const result = await res.json();
+
+    if (!res.ok) {
+      alert(result.error);
+      return;
+    }
+
+    console.log("DONEEEEE")
+
+    navigateTo(`/thread?post=${data.post_id}`);
+  } catch (e) {
+    console.error("ERROR CREATING COMMENT:", e);
+  }
+}
+
+
+
   console.log("form:", formName, data);
 })
 

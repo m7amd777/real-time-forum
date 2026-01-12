@@ -85,7 +85,7 @@ export default async function ThreadView() {
         <div class="comment-input-container">
           
 
-            <form class="comment-input-section">
+            <form class="comment-input-section" data-form="createComment">
                 <input type="hidden" name="post_id" value="${escapeHtml(postId)}">
                 <textarea
                     name="content"
