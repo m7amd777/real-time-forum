@@ -192,19 +192,4 @@ if (formName === "createComment") {
 //   console.log("user auth state changed")
 // })
 
-
-
-async function init() {
-  //checking if it is unknown or not
-  const isAuth = await checkAuth();
-  if (isAuth) {
-    setState({authStatus : "Auth" })
-  } else {
-    setState({authStatus : "unAuth" })
-    navigateTo("/login")
-  }
-  renderLayout();
-}
-
-// init();
 router();
