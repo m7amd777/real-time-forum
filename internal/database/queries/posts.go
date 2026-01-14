@@ -14,8 +14,9 @@ import (
 // fetches all the posts and returns an array of structs (of type Post)
 
 
-func GetAllPosts() ([]models.Post, error) {
-	rows, err := database.DB.Query(`
+func GetAllPosts(category string) ([]models.Post, error) {
+
+	baseQuery := `
 		SELECT
 			p.id,
 			p.title,
@@ -27,8 +28,24 @@ func GetAllPosts() ([]models.Post, error) {
 		JOIN users u ON p.user_id = u.id
 		JOIN post_categories pc ON p.id = pc.post_id
 		JOIN categories x ON pc.category_id = x.id
-		ORDER BY p.created_at DESC
-	`)
+	`
+
+	var args []interface{}
+	if category != "" {
+		baseQuery += `
+			WHERE p.id IN (
+				SELECT pc2.post_id
+				FROM post_categories pc2
+				JOIN categories c2 ON c2.id = pc2.category_id
+				WHERE c2.name = ?
+			)
+		`
+		args = append(args, category)
+	}
+
+	baseQuery += ` ORDER BY p.created_at DESC`
+
+	rows, err := database.DB.Query(baseQuery, args...)
 	if err != nil {
 		return nil, err
 	}
@@ -46,45 +63,38 @@ func GetAllPosts() ([]models.Post, error) {
 			catName   string
 		)
 
-		err := rows.Scan(
+		if err := rows.Scan(
 			&postID,
 			&title,
 			&content,
 			&author,
 			&createdAt,
 			&catName,
-		)
-		if err != nil {
+		); err != nil {
 			return nil, err
 		}
 
-		// create post if not exists
 		if _, exists := postMap[postID]; !exists {
 			postMap[postID] = &models.Post{
-				ID:        postID,
-				Title:     title,
-				Content:   content,
-				Author:    author,
-				CreatedAt: createdAt,
+				ID:         postID,
+				Title:      title,
+				Content:    content,
+				Author:     author,
+				CreatedAt:  createdAt,
 				Categories: []models.Category{},
 			}
 		}
 
-		// append category
 		postMap[postID].Categories = append(
 			postMap[postID].Categories,
 			models.Category{CategoryName: catName},
 		)
 	}
 
-	// convert map → slice
 	var posts []models.Post
 	for _, p := range postMap {
 		posts = append(posts, *p)
 	}
-
-
-	// fmt.Println("THESE ARE ALL THE POSTS: ,", posts)
 
 	return posts, nil
 }

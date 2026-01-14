@@ -1,5 +1,5 @@
 import { router, navigateTo, checkAuth } from "./router.js"
-import {getState, setState} from "./state.js"
+//import {getState, setState} from "./state.js"
 // in order to make a single page application we need routing
 // the routing is not just interacting with just buttons and direct referehes
 // we need to make sure
