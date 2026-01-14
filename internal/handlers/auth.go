@@ -55,6 +55,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	err = queries.CreateUser(req.Username, req.Email, string(req.Password), req.Age, req.Gender, req.FirstName, req.LastName)
+	fmt.Println("error for register")
 	if err != nil {
 		models.SendJSONError(w, http.StatusInternalServerError, "Failed to create user")
 

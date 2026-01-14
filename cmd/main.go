@@ -33,6 +33,8 @@ func main() {
 	http.HandleFunc("/api/createPost", handlers.CreatePostHandler)
 	http.HandleFunc("/api/createComment", handlers.CreateCommentHandler)
 
+	http.HandleFunc("/ws/chat", handlers.ChatWSHandler)
+
 	
 
 

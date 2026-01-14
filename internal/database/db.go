@@ -105,6 +105,28 @@ CREATE TABLE IF NOT EXISTS "sessions" (
 	FOREIGN KEY("user_id") REFERENCES "users"("id")
 );
 
+CREATE TABLE IF NOT EXISTS "conversations" (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user1_id INTEGER NOT NULL,
+    user2_id INTEGER NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    CHECK (user1_id < user2_id),
+    UNIQUE (user1_id, user2_id)
+);
+
+CREATE TABLE IF NOT EXISTS "messages" (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+
+    conversation_id INTEGER NOT NULL,
+    sender_id INTEGER NOT NULL,
+    content TEXT NOT NULL,
+
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    read_at DATETIME, -- NULL = unread, NOT NULL = read
+
+    FOREIGN KEY (conversation_id) REFERENCES conversations(id)
+);
+
 COMMIT;
 `
 
