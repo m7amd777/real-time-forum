@@ -2,10 +2,10 @@ package queries
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"real-time-forum/internal/database"
 	"time"
-	"fmt"
 
 	"github.com/google/uuid"
 )
@@ -48,6 +48,7 @@ func AddSession(email string) (http.Cookie, error) {
 		Value:    value,
 		Expires:  expires,
 		HttpOnly: true,
+		Path:     "/",
 	}
 
 	return cookie, nil
@@ -92,7 +93,7 @@ func GetUserIDFromSession(r *http.Request) (int, error) {
 		WHERE session_id = ?
 	`, cookie.Value).Scan(&userID, &expires)
 
-	if err != nil{
+	if err != nil {
 		fmt.Println("This is the error ingetting user id from the cookie: ")
 	}
 

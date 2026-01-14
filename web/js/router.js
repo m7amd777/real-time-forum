@@ -1,5 +1,7 @@
 // router.js
 // Router logic here
+let activeUnmount = null; // stores cleanup function for current view
+let activePath = null;
 
 
 const routes = [
@@ -148,6 +150,16 @@ export async function router() {
         return router();
     }
 
+
+
+    if (typeof activeUnmount === "function") {
+        try { activeUnmount(); } catch (e) { console.log("unmount error:", e); }
+        activeUnmount = null;
+    }
+
+
+
+
     // awaiting the import section
     const viewModule = await match.route.view();
     //some weirdmodule i guess
@@ -164,7 +176,27 @@ export async function router() {
 
     //it was app
     const app = document.querySelector("#mainarea")
-    app.innerHTML = await view(getParams(match))
+
+    let params = getParams(match)
+    app.innerHTML = await view(params)
+
+
+    if (typeof viewModule.mount === "function") {
+        const maybeUnmount = viewModule.mount(params);
+
+        // allow mount() to either return an unmount function OR you export unmount directly
+        if (typeof maybeUnmount === "function") {
+            activeUnmount = maybeUnmount;
+        } else if (typeof viewModule.unmount === "function") {
+            activeUnmount = viewModule.unmount;
+        }
+    } else if (typeof viewModule.unmount === "function") {
+        // if they only export unmount, still store it (rare)
+        activeUnmount = viewModule.unmount;
+    }
+
+    activePath = match.route.path;
+
 }
 
 //pathname the location is the currenturl we are going to. and we are checking if it matches
