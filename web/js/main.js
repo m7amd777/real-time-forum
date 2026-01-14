@@ -74,6 +74,9 @@ document.addEventListener("submit", async (e) => {
     try {
       console.log("inside the try block of the register form")
 
+      data.age = Number(data.age);
+
+
       //fetching from this api which is registered in the main.go and handled by RegisterHandler
       const res = await fetch("/api/register", {
         method: "POST",

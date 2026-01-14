@@ -54,11 +54,11 @@ func EmailExists(email string) (bool, error) {
 	return true, nil
 }
 
-func CreateUser(username, email, password string) error {
+func CreateUser(username, email, password string, age int , gender  string , firstname string , lastname string) error {
 	_, err := database.DB.Exec(`
-		INSERT INTO users (username, email, password_hash, created_at)
-		VALUES (?, ?, ?, ?)
-	`, username, email, password, time.Now())
+		INSERT INTO users (username, email, password_hash, age, gender, firstname, lastname,  created_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+	`, username, email, password, age ,gender , firstname, lastname,  time.Now())
 
 	return err
 }

@@ -32,6 +32,7 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 	err := json.NewDecoder(r.Body).Decode(&req)
 	if err != nil {
 		models.SendJSONError(w, http.StatusBadRequest, "Invalid request")
+		fmt.Println("")
 		return
 	}
 
@@ -53,9 +54,11 @@ func RegisterHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = queries.CreateUser(req.Username, req.Email, string(req.Password))
+	err = queries.CreateUser(req.Username, req.Email, string(req.Password), req.Age, req.Gender, req.FirstName, req.LastName)
 	if err != nil {
 		models.SendJSONError(w, http.StatusInternalServerError, "Failed to create user")
+
+		fmt.Print("THIS IS THE ERROR FOR CREATING A USER IN THE REGISTER HANDLER: ", err)
 		return
 	}
 
