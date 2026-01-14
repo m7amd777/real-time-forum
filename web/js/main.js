@@ -1,5 +1,5 @@
 import { router, navigateTo, checkAuth } from "./router.js"
-import {getState, setState} from "./state.js"
+// import {getState, setState} from "./state.js"
 // in order to make a single page application we need routing
 // the routing is not just interacting with just buttons and direct referehes
 // we need to make sure
@@ -192,19 +192,4 @@ if (formName === "createComment") {
 //   console.log("user auth state changed")
 // })
 
-
-
-async function init() {
-  //checking if it is unknown or not
-  const isAuth = await checkAuth();
-  if (isAuth) {
-    setState({authStatus : "Auth" })
-  } else {
-    setState({authStatus : "unAuth" })
-    navigateTo("/login")
-  }
-  renderLayout();
-}
-
-// init();
 router();
