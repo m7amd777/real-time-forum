@@ -1,19 +1,18 @@
-package cookie 
+package cookie
 
 import (
-	//"fmt"
+	"fmt"
 	"net/http"
+
 	//"time"
 	"real-time-forum/internal/database/queries"
-
 )
-
-
 
 func IsAuthenticated(r *http.Request) bool {
 	cookie, err := r.Cookie("sessionID")
 	if err != nil {
-		// fmt.Println("error in cookie.go is:", err)
+		fmt.Println(cookie)
+		fmt.Println("error in cookie.go is:", err)
 		return false
 	}
 
@@ -25,12 +24,12 @@ func IsAuthenticated(r *http.Request) bool {
 }
 
 func DeleteCookie(w http.ResponseWriter, r *http.Request) {
-    http.SetCookie(w, &http.Cookie{
-        Name:     "sessionID",
-        Value:    "",
-        Path:     "/",
-        MaxAge:   -1,  
-        HttpOnly: true,
-    })
+	http.SetCookie(w, &http.Cookie{
+		Name:     "sessionID",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+	})
 }
 

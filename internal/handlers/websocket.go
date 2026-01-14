@@ -2,12 +2,13 @@ package handlers
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
 
 	"real-time-forum/internal/cookie"
+	"real-time-forum/internal/database/queries"
 
 	"github.com/gorilla/websocket"
 )
@@ -246,8 +247,16 @@ func (c *chatClient) handleMessage(ev ClientEvent) {
 
 func ChatWSHandler(w http.ResponseWriter, r *http.Request) {
 	// You already have cookie.IsAuthenticated(r)
+
+	fmt.Println("WS path:", r.URL.Path)
+	fmt.Println("WS Host:", r.Host)
+	fmt.Println("WS Origin:", r.Header.Get("Origin"))
+	fmt.Println("WS Cookie header:", r.Header.Get("Cookie"))
+	fmt.Printf("WS All cookies: %#v\n", r.Cookies())
+
 	if !cookie.IsAuthenticated(r) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		fmt.Println("cookies not auth wowowowwo")
 		return
 	}
 
@@ -288,21 +297,8 @@ func ChatWSHandler(w http.ResponseWriter, r *http.Request) {
 // =====================
 
 func userIDFromSessionCookie(r *http.Request) (int64, error) {
-	// You already use cookie name "sessionID" in earlier code.
-	ck, err := r.Cookie("sessionID")
-	if err != nil {
-		return 0, errors.New("missing session cookie")
-	}
-
-	sessionID := ck.Value
-
-	// --- DB QUERY YOU WILL IMPLEMENT (commented) ---
-	// userID, err := queries.GetUserIDBySession(sessionID)
-	// if err != nil { return 0, err }
-	// return userID, nil
-
-	_ = sessionID
-	return 0, errors.New("TODO: implement GetUserIDBySession(sessionID)")
+	userID, err := queries.GetUserIDFromSession(r)
+	return int64(userID), err
 }
 
 /*

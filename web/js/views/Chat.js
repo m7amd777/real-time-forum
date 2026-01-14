@@ -17,23 +17,59 @@ export default async function ChatView() {
 export function mount(params) {
   const { conversationId } = params || {}; // if you add /chat/:conversationId later
 
-  const proto = window.location.protocol === "https:" ? "wss" : "ws";
-  const url = `${proto}://${window.location.host}/ws${conversationId ? `?conversation_id=${conversationId}` : ""}`;
+  // // Check if session cookie exists
+  // const hasCookie = document.cookie.includes("sessionID");
+  // console.log("[Chat] Session cookie present:", hasCookie);
+  // console.log("[Chat] All cookies:", document.cookie);
+  
+  // if (!hasCookie) {
+  //   const chat = document.getElementById("chatsection");
+  //   if (chat) {
+  //     const err = document.createElement("div");
+  //     err.style.color = "red";
+  //     err.textContent = "ERROR: No session cookie found. Please log in first.";
+  //     chat.appendChild(err);
+  //   }
+  //   return () => {};
+  // }
 
+  const proto = window.location.protocol === "https:" ? "wss" : "ws";
+  const url = `${proto}://${window.location.host}/ws/chat${conversationId ? `?conversation_id=${conversationId}` : ""}`;
+
+  console.log("[Chat] Connecting to WebSocket:", url);
   ws = new WebSocket(url);
 
   ws.onopen = () => console.log("WS connected");
   ws.onclose = () => console.log("WS closed");
-  ws.onerror = (e) => console.log("WS error", e);
+  ws.onerror = (e) => {
+    console.error("WS error:", e);
+    const chat = document.getElementById("chatsection");
+    if (chat) {
+      const err = document.createElement("div");
+      err.style.color = "red";
+      err.textContent = "Connection failed - are you logged in?";
+      chat.appendChild(err);
+    }
+  };
 
   ws.onmessage = (event) => {
     const chat = document.getElementById("chatsection");
     if (!chat) return;
 
-    const h = document.createElement("h3");
-    h.className = "from";
-    h.textContent = event.data;
-    chat.appendChild(h);
+    try {
+      const msg = JSON.parse(event.data);
+
+      if (msg.type === "message") {
+        const h = document.createElement("h3");
+        h.className = "from";
+        h.textContent = `${msg.sender_id}: ${msg.content}`;
+        chat.appendChild(h);
+      } else if (msg.type === "error") {
+        console.error("Server error:", msg.error);
+      }
+    } catch (e) {
+      console.error("Failed to parse message:", e);
+    }
   };
 
   const sendBtn = document.getElementById("sendBtn");
@@ -44,7 +80,14 @@ export function mount(params) {
     if (!text) return;
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
 
-    ws.send(text); // change to JSON if your server expects JSON
+    const message = {
+      type: "message",
+      conversation_id: conversationId || 1,
+      recipient_id: 2, // TODO: get actual recipient ID
+      content: text,
+      temp_id: Date.now().toString()
+    };
+    ws.send(JSON.stringify(message));
     entry.value = "";
   };
 

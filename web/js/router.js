@@ -176,7 +176,9 @@ export async function router() {
 
     //it was app
     const app = document.querySelector("#mainarea")
-    app.innerHTML = await view(getParams(match))
+
+    let params = getParams(match)
+    app.innerHTML = await view(params)
 
 
     if (typeof viewModule.mount === "function") {

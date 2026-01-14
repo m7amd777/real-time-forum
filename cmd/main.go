@@ -1,27 +1,26 @@
 // main.go
 package main
 
-import(
+import (
 	"fmt"
-	"net/http"
 	"html/template"
-	"real-time-forum/internal/handlers"
-	"real-time-forum/internal/database"
+	"net/http"
 	"real-time-forum/internal/cookie"
-
+	"real-time-forum/internal/database"
+	"real-time-forum/internal/handlers"
 )
 
 // "real-time-forum/internal/databasedsdsds"
 func main() {
 	// Entry point for the server
 	database.InitDB()
-	//./ is working anyways	
+	//./ is working anyways
 	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("../web/"))))
 
 	http.HandleFunc("/", homeHandler)
 
 	// define the endpoint for the posts, this will be used by the frontend to fetch data and populate the js views
-	http.HandleFunc("/api/posts", handlers.PostsHandler) 
+	http.HandleFunc("/api/posts", handlers.PostsHandler)
 
 	http.HandleFunc("/api/comments", handlers.CommentsHandler)
 	http.HandleFunc("/api/register", handlers.RegisterHandler)
@@ -34,11 +33,6 @@ func main() {
 	http.HandleFunc("/api/createComment", handlers.CreateCommentHandler)
 
 	http.HandleFunc("/ws/chat", handlers.ChatWSHandler)
-
-	
-
-
-
 
 	// Start server
 	fmt.Println("Server running on http://localhost:8080")
@@ -55,15 +49,23 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+
 	// Render template with authentication status
-	data := struct{
+	data := struct {
 		IsAuthenticated bool
 	}{
 		IsAuthenticated: cookie.IsAuthenticated(r),
 	}
 
+	fmt.Println("WS path:", r.URL.Path)
+	fmt.Println("WS Host:", r.Host)
+	fmt.Println("WS Origin:", r.Header.Get("Origin"))
+	fmt.Println("WS Cookie header:", r.Header.Get("Cookie"))
+	fmt.Printf("WS All cookies: %#v\n", r.Cookies())
+	fmt.Println(data)
+
 	if err := tmpl.Execute(w, data); err != nil {
-		fmt.Println("ansabsbas",err)
+		fmt.Println("ansabsbas", err)
 		http.Error(w, "Error rendering template", http.StatusInternalServerError)
 		return
 	}
