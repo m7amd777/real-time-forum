@@ -2,17 +2,37 @@
 let ws = null;
 
 export default async function ChatView() {
-  return `
-    <div class="chatarea">
-      ...
-      <div class="chatsection" id="chatsection"></div>
-      <div class="inputbar">
-        <textarea class="entry" id="entry"></textarea>
-        <button id="sendBtn">Send</button>
-      </div>
-    </div>
-  `;
+  return `<div class="chatarea">
+                <div class= "usersList">
+                    <ul>
+                        <li class="userContact">
+                            <span class="contactUsername">____</span>
+                            <span class ="contactStatus online">_____</span>
+                        </li>
+                    </ul>
+                </div>
+                <div class= "chatspace">
+                    <div class ="usercard">
+                        <p>_____ - active</p>
+                        
+                    </div>
+                    <!-- scrollable -->
+                    <div class ="chatsection">
+                        // fill it here with h3 and choose right class
+                    </div>
+
+                    <div class ="inputbar">
+                        <textarea class="entry"></textarea>
+                        <button id="sendBtn">Send</button>
+                    </div>
+                </div>
+            </div>`;
+
 }
+
+
+
+
 
 export function mount(params) {
   const { conversationId } = params || {}; // if you add /chat/:conversationId later
@@ -21,7 +41,7 @@ export function mount(params) {
   // const hasCookie = document.cookie.includes("sessionID");
   // console.log("[Chat] Session cookie present:", hasCookie);
   // console.log("[Chat] All cookies:", document.cookie);
-  
+
   // if (!hasCookie) {
   //   const chat = document.getElementById("chatsection");
   //   if (chat) {

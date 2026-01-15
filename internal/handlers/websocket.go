@@ -248,11 +248,11 @@ func (c *chatClient) handleMessage(ev ClientEvent) {
 func ChatWSHandler(w http.ResponseWriter, r *http.Request) {
 	// You already have cookie.IsAuthenticated(r)
 
-	fmt.Println("WS path:", r.URL.Path)
-	fmt.Println("WS Host:", r.Host)
-	fmt.Println("WS Origin:", r.Header.Get("Origin"))
-	fmt.Println("WS Cookie header:", r.Header.Get("Cookie"))
-	fmt.Printf("WS All cookies: %#v\n", r.Cookies())
+	// fmt.Println("WS path:", r.URL.Path)
+	// fmt.Println("WS Host:", r.Host)
+	// fmt.Println("WS Origin:", r.Header.Get("Origin"))
+	// fmt.Println("WS Cookie header:", r.Header.Get("Cookie"))
+	// fmt.Printf("WS All cookies: %#v\n", r.Cookies())
 
 	if !cookie.IsAuthenticated(r) {
 		http.Error(w, "unauthorized", http.StatusUnauthorized)
