@@ -1,2 +1,93 @@
-/* auth.css */
-/* Auth styles here */
+/* ================================
+   AUTH (Simple centered card)
+   ================================ */
+
+/* Center card without scroll */
+body.auth-view {
+    overflow: hidden;
+}
+
+.auth-page {
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* White card */
+.authcard {
+    width: 100%;
+    max-width: 420px;
+    background: #ffffff;
+    border-radius: 12px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    overflow: visible; /* IMPORTANT */
+}
+
+/* Header strip (same feel as .usercard) */
+.authcard-header {
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.08);
+        border-radius: 12px;
+
+    background: linear-gradient(
+        180deg,
+        #ffffff,
+        #fafafa
+    );
+}
+
+.authcard-header p {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 700;
+    color: #333;
+}
+
+/* Form */
+.auth-form {
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+/* Button matches app theme */
+.btn-auth {
+    padding: 12px 16px;
+    border-radius: 12px;
+    border: 1px solid rgba(170, 4, 4, 0.35);
+    background: #aa0404;
+    color: #fff;
+    font-weight: 700;
+    cursor: pointer;
+
+    transition: transform 140ms ease, box-shadow 140ms ease;
+}
+
+.btn-auth:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(170, 4, 4, 0.18);
+}
+
+.btn-auth:active {
+    transform: translateY(0);
+}
+
+/* Footer */
+.auth-footer {
+    padding: 12px 18px 18px;
+    text-align: center;
+    font-size: 13px;
+    color: #666;
+}
+
+.auth-footer a {
+    color: #aa0404;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.auth-footer a:hover {
+    text-decoration: underline;
+}
