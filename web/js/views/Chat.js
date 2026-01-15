@@ -17,7 +17,7 @@ export default async function ChatView() {
                         
                     </div>
                     <!-- scrollable -->
-                    <div class ="chatsection">
+                    <div class ="chatsection" id="chatsection">
                         // fill it here with h3 and choose right class
                     </div>
 
@@ -73,11 +73,13 @@ export function mount(params) {
   };
 
   ws.onmessage = (event) => {
+
     const chat = document.getElementById("chatsection");
-    if (!chat) return;
+    // if (!chat) return;
 
     try {
       const msg = JSON.parse(event.data);
+      console.log(msg)
 
       if (msg.type === "message") {
         const h = document.createElement("h3");
@@ -103,7 +105,7 @@ export function mount(params) {
     const message = {
       type: "message",
       conversation_id: conversationId || 1,
-      recipient_id: 2, // TODO: get actual recipient ID
+      recipient_id: 8, // TODO: get actual recipient ID
       content: text,
       temp_id: Date.now().toString()
     };
