@@ -22,7 +22,7 @@ export default async function ChatView() {
                     </div>
 
                     <div class ="inputbar">
-                        <textarea class="entry"></textarea>
+                        <textarea class="entry" id="entry"></textarea>
                         <button id="sendBtn">Send</button>
                     </div>
                 </div>
