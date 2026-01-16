@@ -1,123 +1,169 @@
 // views/Chat.js
 let ws = null;
+let allUsers = [];
+let currentRecipient = null;
 
 export default async function ChatView() {
-  return `<div class="chatarea">
-                <div class= "usersList">
-                    <ul>
-                        <li class="userContact">
-                            <span class="contactUsername">____</span>
-                            <span class ="contactStatus online">_____</span>
-                        </li>
-                    </ul>
-                </div>
-                <div class= "chatspace">
-                    <div class ="usercard">
-                        <p>_____ - active</p>
-                        
-                    </div>
-                    <!-- scrollable -->
-                    <div class ="chatsection" id="chatsection">
-                        // fill it here with h3 and choose right class
-                    </div>
+  return `
+    <div class="chatarea">
+      <div class="usersList">
+        <input 
+          type="text" 
+          id="userSearch" 
+          placeholder="Search users..." 
+          class="userSearch"
+        />
+        <ul id="usersContainer"></ul>
+      </div>
 
-                    <div class ="inputbar">
-                        <textarea class="entry" id="entry"></textarea>
-                        <button id="sendBtn">Send</button>
-                    </div>
-                </div>
-            </div>`;
+      <div class="chatspace">
+        <div class="usercard">
+          <p>Select a user</p>
+        </div>
 
+        <div class="chatsection" id="chatsection"></div>
+
+        <div class="inputbar">
+          <textarea class="entry" id="entry"></textarea>
+          <button id="sendBtn">Send</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+export function mount(params) {
+  const { conversationId } = params || {};
+
+  const usersContainer = document.getElementById("usersContainer");
+  const chat = document.getElementById("chatsection");
+  const sendBtn = document.getElementById("sendBtn");
+  const entry = document.getElementById("entry");
+  const search = document.getElementById("userSearch");
+
+  // =======================
+  // USERS SIDEBAR
+  // =======================
+
+  async function loadUsers() {
+    try {
+      const res = await fetch("/api/users");
+      if (!res.ok) throw new Error("Failed to fetch users");
+
+      allUsers = await res.json();
+      renderUsers(allUsers);
+    } catch (err) {
+      console.error("Load users error:", err);
+    }
+  }
+
+  function renderUsers(users) {
+    usersContainer.innerHTML = "";
+
+    users.forEach(u => {
+      const li = document.createElement("li");
+      li.className = "userContact";
+      li.dataset.userid = u.id;
+
+      li.innerHTML = `
+        <span class="contactUsername">${u.username}</span>
+        <span class="contactStatus online">●</span>
+      `;
+
+      li.addEventListener("click", () => {
+        selectRecipient(u.id, u.username);
+      });
+
+      usersContainer.appendChild(li);
+    });
+  }
+
+function selectRecipient(id, name) {
+  currentRecipient = String(id); // fine for UI
+
+  document.querySelectorAll(".userContact").forEach(li => li.classList.remove("active"));
+  const selectedLi = document.querySelector(`.userContact[data-userid='${id}']`);
+  if (selectedLi) selectedLi.classList.add("active");
+
+  const header = document.querySelector(".usercard p");
+  if (header) header.textContent = `${name} - active`;
+
+  chat.innerHTML = "";
+  console.log("Recipient set:", currentRecipient);
 }
 
 
+  search.addEventListener("input", e => {
+    const value = e.target.value.toLowerCase();
+    const filtered = allUsers.filter(u =>
+      u.username.toLowerCase().includes(value)
+    );
+    renderUsers(filtered);
+  });
 
-
-
-export function mount(params) {
-  const { conversationId } = params || {}; // if you add /chat/:conversationId later
-
-  // // Check if session cookie exists
-  // const hasCookie = document.cookie.includes("sessionID");
-  // console.log("[Chat] Session cookie present:", hasCookie);
-  // console.log("[Chat] All cookies:", document.cookie);
-
-  // if (!hasCookie) {
-  //   const chat = document.getElementById("chatsection");
-  //   if (chat) {
-  //     const err = document.createElement("div");
-  //     err.style.color = "red";
-  //     err.textContent = "ERROR: No session cookie found. Please log in first.";
-  //     chat.appendChild(err);
-  //   }
-  //   return () => {};
-  // }
+  // =======================
+  // WEBSOCKET
+  // =======================
 
   const proto = window.location.protocol === "https:" ? "wss" : "ws";
   const url = `${proto}://${window.location.host}/ws/chat${conversationId ? `?conversation_id=${conversationId}` : ""}`;
 
-  console.log("[Chat] Connecting to WebSocket:", url);
+  console.log("[Chat] Connecting:", url);
   ws = new WebSocket(url);
 
   ws.onopen = () => console.log("WS connected");
   ws.onclose = () => console.log("WS closed");
-  ws.onerror = (e) => {
-    console.error("WS error:", e);
-    const chat = document.getElementById("chatsection");
-    if (chat) {
-      const err = document.createElement("div");
-      err.style.color = "red";
-      err.textContent = "Connection failed - are you logged in?";
-      chat.appendChild(err);
-    }
-  };
+  ws.onerror = e => console.error("WS error:", e);
 
-  ws.onmessage = (event) => {
-
-    const chat = document.getElementById("chatsection");
-    // if (!chat) return;
-
+  ws.onmessage = event => {
     try {
       const msg = JSON.parse(event.data);
-      console.log(msg)
+      console.log("WS message:", msg);
 
       if (msg.type === "message") {
         const h = document.createElement("h3");
-        h.className = "from";
+        h.className = msg.sender_id === currentRecipient ? "to" : "from";
         h.textContent = `${msg.sender_id}: ${msg.content}`;
         chat.appendChild(h);
-      } else if (msg.type === "error") {
-        console.error("Server error:", msg.error);
+        chat.scrollTop = chat.scrollHeight;
       }
     } catch (e) {
-      console.error("Failed to parse message:", e);
+      console.error("Parse error:", e);
     }
   };
 
-  const sendBtn = document.getElementById("sendBtn");
-  const entry = document.getElementById("entry");
+  // =======================
+  // SEND MESSAGE
+  // =======================
 
   const onSend = () => {
     const text = entry.value.trim();
     if (!text) return;
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    if (!currentRecipient) return alert("Select a user first");
 
     const message = {
       type: "message",
       conversation_id: conversationId || 1,
-      recipient_id: 8, // TODO: get actual recipient ID
+      recipient_id: Number(currentRecipient),
       content: text,
       temp_id: Date.now().toString()
     };
+
     ws.send(JSON.stringify(message));
     entry.value = "";
   };
 
-  sendBtn?.addEventListener("click", onSend);
+  sendBtn.addEventListener("click", onSend);
 
-  // IMPORTANT: return cleanup function (router will call it before leaving)
+  loadUsers();
+
+  // =======================
+  // CLEANUP
+  // =======================
+
   return () => {
-    sendBtn?.removeEventListener("click", onSend);
+    sendBtn.removeEventListener("click", onSend);
     if (ws) {
       ws.close(1000, "leaving chat");
       ws = null;

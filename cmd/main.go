@@ -21,6 +21,8 @@ func main() {
 
 	// define the endpoint for the posts, this will be used by the frontend to fetch data and populate the js views
 	http.HandleFunc("/api/posts", handlers.PostsHandler)
+		http.HandleFunc("/api/users", handlers.UsersHandler)
+
 
 	http.HandleFunc("/api/comments", handlers.CommentsHandler)
 	http.HandleFunc("/api/register", handlers.RegisterHandler)
@@ -33,6 +35,8 @@ func main() {
 	http.HandleFunc("/api/createComment", handlers.CreateCommentHandler)
 
 	http.HandleFunc("/ws/chat", handlers.ChatWSHandler)
+
+	
 
 	// Start server
 	fmt.Println("Server running on http://localhost:8080")

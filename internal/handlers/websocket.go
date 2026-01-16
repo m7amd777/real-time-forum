@@ -18,9 +18,30 @@ import (
 // // Hub (online users)
 // // =====================
 
+type ChatClient struct {
+	id   int
+	conn *websocket.Conn
+	send chan ServerEvent
+}
+
 type chatHub struct {
 	mu      sync.RWMutex
 	clients map[int64]*ChatClient // userID -> client
+}
+// {"type":"message","conversation_id":1,"recipient_id":2,"content":"sdsgdsudvskdgsgdsdsgdsudvskdgsgdsdsgdsudvskdgsgdsdsgdsudvskdgsgd","temp_id":"1768487398524"}
+type ClientEvent struct {
+	Type            string `json:"type"`
+	Conversation_id int    `json:"conversation_id"`
+	Recipient_id    int    `json:"recipient_id"`
+	Content         string `json:"content"`
+}
+
+// this has to change definitely
+type ServerEvent struct {
+	Type        string `json:"type"`
+	SenderID    int    `json:"sender_id"`
+	RecipientID int    `json:"recipient_id"`
+	Content     string `json:"content"`
 }
 
 func newChatHub() *chatHub {
@@ -66,27 +87,8 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
-type ChatClient struct {
-	id   int
-	conn *websocket.Conn
-	send chan ServerEvent
-}
 
-// {"type":"message","conversation_id":1,"recipient_id":2,"content":"sdsgdsudvskdgsgdsdsgdsudvskdgsgdsdsgdsudvskdgsgdsdsgdsudvskdgsgd","temp_id":"1768487398524"}
-type ClientEvent struct {
-	Type            string `json:"type"`
-	Conversation_id int    `json:"conversation_id"`
-	Recipient_id    int    `json:"recipient_id"`
-	Content         string `json:"content"`
-}
 
-// this has to change definitely
-type ServerEvent struct {
-	Type        string `json:"type"`
-	SenderID    int    `json:"sender_id"`
-	RecipientID int    `json:"recipient_id"`
-	Content     string `json:"content"`
-}
 
 func ChatWSHandler(w http.ResponseWriter, r *http.Request) {
 	auth := cookie.IsAuthenticated(r)
