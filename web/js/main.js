@@ -39,7 +39,7 @@ document.addEventListener("click", (e) => {
     // in the beginnign we wont but as we move up and intiate the chats we will definitely will
     console.log("action:", action);
     if (action == "Chat") {
-      //NAVIGATETOCHAT
+      navigateTo("/chat")
     } else if (action == "Create") {
       navigateTo("/create")
     }
