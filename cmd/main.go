@@ -20,19 +20,23 @@ func main() {
 	http.HandleFunc("/", homeHandler)
 
 	// define the endpoint for the posts, this will be used by the frontend to fetch data and populate the js views
-	http.HandleFunc("/api/posts", handlers.PostsHandler)
-
-	http.HandleFunc("/api/comments", handlers.CommentsHandler)
 	http.HandleFunc("/api/register", handlers.RegisterHandler)
-
 	http.HandleFunc("/api/login", handlers.LoginHandler)
 	http.HandleFunc("/api/logout", handlers.LogoutHandler)
-
 	http.HandleFunc("/api/auth/status", handlers.AuthStatusHandler)
+	http.HandleFunc("/api/posts", handlers.PostsHandler)
+	http.HandleFunc("/api/comments", handlers.CommentsHandler)
+
 	http.HandleFunc("/api/createPost", handlers.CreatePostHandler)
 	http.HandleFunc("/api/createComment", handlers.CreateCommentHandler)
 
+	//for the chats
+	http.HandleFunc("/api/users", handlers.UsersHandler)
 	http.HandleFunc("/ws/chat", handlers.ChatWSHandler)
+
+	http.HandleFunc("/api/conversations", handlers.ConversationsHandler)
+	http.HandleFunc("/api/start-chat", handlers.StartChatHandler)
+	http.HandleFunc("/api/messages", handlers.MessagesHandler)
 
 	// Start server
 	fmt.Println("Server running on http://localhost:8080")
@@ -48,7 +52,6 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Error loading template", http.StatusInternalServerError)
 		return
 	}
-
 
 	// Render template with authentication status
 	data := struct {

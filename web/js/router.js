@@ -30,7 +30,21 @@ function getParams(match) {
 
 // --------------------look at this later --------------------------------------
 
+// export async function checkAuth() {
+//     if (localstorage.getItem("isLoggedIn")) return true
+    
+//     const res = await fetch("/api/auth/status", {
+//         credentials: "include"
+//     });
 
+//     if (!res.ok) return false;
+
+//     const data = await res.json();
+
+//     if (data.authenticated) localStorage.setItem("isLoggedIn", true)
+
+//     return localstorage.getItem("isLoggedIn");
+// }
 
 export async function checkAuth() {
     const res = await fetch("/api/auth/status", {

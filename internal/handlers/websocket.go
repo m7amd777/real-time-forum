@@ -4,78 +4,58 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"sync"
-	"time"
-
 	"real-time-forum/internal/cookie"
 	"real-time-forum/internal/database/queries"
+	"sync"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
 
-// =====================
-// WS protocol structs
-// =====================
+//we need to track the users and what they are doing if they are online or not
 
-type ClientEvent struct {
-	Type           string `json:"type"` // "message"
-	ConversationID int64  `json:"conversation_id"`
-	RecipientID    int64  `json:"recipient_id"`
-	Content        string `json:"content"`
-	TempID         string `json:"temp_id,omitempty"`
+// // =====================
+// // Hub (online users)
+// // =====================
+
+type ChatClient struct {
+	id   int
+	conn *websocket.Conn
+	send chan ServerEvent
 }
-
-type ServerEvent struct {
-	Type           string `json:"type"` // "message" | "sent_ack" | "error" | "presence"
-	ConversationID int64  `json:"conversation_id,omitempty"`
-	SenderID       int64  `json:"sender_id,omitempty"`
-	RecipientID    int64  `json:"recipient_id,omitempty"`
-	Content        string `json:"content,omitempty"`
-	CreatedAt      string `json:"created_at,omitempty"`
-	TempID         string `json:"temp_id,omitempty"`
-	Delivered      *bool  `json:"delivered,omitempty"`
-	Error          string `json:"error,omitempty"`
-
-	// optional presence event
-	UserID int64  `json:"user_id,omitempty"`
-	Status string `json:"status,omitempty"` // "online"/"offline"
-}
-
-// =====================
-// Gorilla WS setup
-// =====================
-
-const (
-	writeWait      = 10 * time.Second
-	pongWait       = 60 * time.Second
-	pingPeriod     = (pongWait * 9) / 10
-	maxMessageSize = 16 * 1024
-)
-
-var chatUpgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool { return true }, // replace later if you want
-}
-
-// =====================
-// Hub (online users)
-// =====================
 
 type chatHub struct {
 	mu      sync.RWMutex
-	clients map[int64]*chatClient // userID -> client
+	clients map[int64]*ChatClient // userID -> client
+}
+
+// {"type":"message","conversation_id":1,"recipient_id":2,"content":"sdsgdsudvskdgsgdsdsgdsudvskdgsgdsdsgdsudvskdgsgdsdsgdsudvskdgsgd","temp_id":"1768487398524"}
+type ClientEvent struct {
+	Type            string `json:"type"`
+	Conversation_id int    `json:"conversation_id"`
+	Recipient_id    int    `json:"recipient_id"`
+	Content         string `json:"content"`
+}
+
+// this has to change definitely
+type ServerEvent struct {
+	Type        string `json:"type"`
+	SenderID    int    `json:"sender_id"`
+	RecipientID int    `json:"recipient_id"`
+	Content     string `json:"content"`
 }
 
 func newChatHub() *chatHub {
-	return &chatHub{clients: make(map[int64]*chatClient)}
+	return &chatHub{clients: make(map[int64]*ChatClient)}
 }
 
-func (h *chatHub) setOnline(userID int64, c *chatClient) {
+func (h *chatHub) setOnline(userID int64, c *ChatClient) {
 	h.mu.Lock()
 	h.clients[userID] = c
 	h.mu.Unlock()
 }
 
-func (h *chatHub) setOffline(userID int64, c *chatClient) {
+func (h *chatHub) setOffline(userID int64, c *ChatClient) {
 	h.mu.Lock()
 	if existing, ok := h.clients[userID]; ok && existing == c {
 		delete(h.clients, userID)
@@ -83,7 +63,7 @@ func (h *chatHub) setOffline(userID int64, c *chatClient) {
 	h.mu.Unlock()
 }
 
-func (h *chatHub) get(userID int64) (*chatClient, bool) {
+func (h *chatHub) get(userID int64) (*ChatClient, bool) {
 	h.mu.RLock()
 	c, ok := h.clients[userID]
 	h.mu.RUnlock()
@@ -93,29 +73,87 @@ func (h *chatHub) get(userID int64) (*chatClient, bool) {
 // single global hub instance (simple + works)
 var hub = newChatHub()
 
-// =====================
-// Client
-// =====================
+// idk what is this but i kept it here for now
+const (
+	writeWait      = 10 * time.Second
+	pongWait       = 60 * time.Second
+	pingPeriod     = (pongWait * 9) / 10
+	maxMessageSize = 16 * 1024
+)
 
-type chatClient struct {
-	userID int64
-	conn   *websocket.Conn
-	send   chan ServerEvent
+//mohamed work is below for now=============================================================================
+
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
 }
 
-func (c *chatClient) sendEvent(ev ServerEvent) {
-	select {
-	case c.send <- ev:
-	default:
-		_ = c.conn.Close()
+func ChatWSHandler(w http.ResponseWriter, r *http.Request) {
+	auth := cookie.IsAuthenticated(r)
+	if !auth {
+		//return to the pahe ot dont ugrade
+		fmt.Println("not authorized at all")
+		return
 	}
+
+	//now call the damn upgrader
+	conn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		fmt.Println("Failed to upgrade the cookie", err)
+
+		return
+	}
+
+	clientID, err := queries.GetUserIDFromSession(r)
+	if err != nil {
+		fmt.Println("COULD NOT GET USER ID, ABORTING")
+		return
+	}
+
+	//pointer to the client so we can use it always anywhere
+	c := &ChatClient{
+		id:   clientID,
+		conn: conn,
+		send: make(chan ServerEvent, 64),
+	}
+	hub.setOnline(int64(clientID), c)
+
+	go c.readPump()
+	go c.writePump()
 }
 
-func (c *chatClient) sendError(msg string) {
-	c.sendEvent(ServerEvent{Type: "error", Error: msg})
+// loop to read anything a client sends
+func (c *ChatClient) readPump() {
+	for {
+		_, p, err := c.conn.NextReader()
+		if err != nil {
+			fmt.Println("err")
+			break
+		}
+
+		var msg ClientEvent
+
+		dec := json.NewDecoder(p)
+		err = dec.Decode(&msg)
+		if err != nil {
+			fmt.Println("payload error")
+			fmt.Println(err)
+		}
+		//knowing type of message
+
+		switch msg.Type {
+		case "message":
+			c.handleMessage(msg)
+		default:
+			//send client first
+			fmt.Println("client error")
+		}
+
+	}
+
 }
 
-func (c *chatClient) writePump() {
+func (c *ChatClient) writePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
@@ -148,163 +186,36 @@ func (c *chatClient) writePump() {
 	}
 }
 
-func (c *chatClient) readPump() {
-	defer func() {
-		hub.setOffline(c.userID, c)
-
-		// --- DB: mark offline (commented) ---
-		// _ = dbMarkUserOffline(c.userID)
-
+func (c *ChatClient) sendEvent(ev ServerEvent) {
+	fmt.Println("sending event")
+	select {
+	case c.send <- ev:
+	default:
 		_ = c.conn.Close()
-	}()
-
-	c.conn.SetReadLimit(maxMessageSize)
-	_ = c.conn.SetReadDeadline(time.Now().Add(pongWait))
-	c.conn.SetPongHandler(func(string) error {
-		_ = c.conn.SetReadDeadline(time.Now().Add(pongWait))
-		return nil
-	})
-
-	for {
-		msgType, r, err := c.conn.NextReader()
-		if err != nil {
-			return
-		}
-		if msgType != websocket.TextMessage {
-			continue
-		}
-
-		var ev ClientEvent
-		dec := json.NewDecoder(r)
-		if err := dec.Decode(&ev); err != nil {
-			c.sendError("invalid json payload")
-			continue
-		}
-
-		switch ev.Type {
-		case "message":
-			c.handleMessage(ev)
-		default:
-			c.sendError("unknown event type")
-		}
 	}
 }
 
-func (c *chatClient) handleMessage(ev ClientEvent) {
-	// basic validation
-	if ev.ConversationID <= 0 || ev.RecipientID <= 0 || ev.Content == "" {
-		c.sendError("invalid message payload")
-		return
-	}
-	if ev.RecipientID == c.userID {
-		c.sendError("recipient_id cannot be yourself")
-		return
-	}
+func (c *ChatClient) handleMessage(msg ClientEvent) {
+	// need to check if the user is online (later)
 
-	// --- OPTIONAL security check (commented) ---
-	// Verify (conversation_id, sender_id, recipient_id) match the conversations table.
-	// ok, err := dbIsConversationMember(ev.ConversationID, c.userID, ev.RecipientID)
-	// if err != nil { c.sendError("server error"); return }
-	// if !ok { c.sendError("not allowed"); return }
-
-	now := time.Now().UTC().Format(time.RFC3339Nano)
-	recipientClient, online := hub.get(ev.RecipientID)
-
-	// Your rule:
-	// If online -> forward
-	// Else -> save only to DB
-	//
-	// IMPORTANT: per your rule, online messages are NOT stored.
-	// (I’m not changing that unless you tell me.)
-
-	if online {
-		recipientClient.sendEvent(ServerEvent{
-			Type:           "message",
-			ConversationID: ev.ConversationID,
-			SenderID:       c.userID,
-			RecipientID:    ev.RecipientID,
-			Content:        ev.Content,
-			CreatedAt:      now,
-			TempID:         ev.TempID,
+	// forward it to the other client\
+	// now := time.Now()
+	fmt.Println("handling the message to", msg.Recipient_id)
+	rc, ok := hub.get(int64(msg.Recipient_id))
+	if ok {
+		// recipient is offline, just save to database
+		rc.sendEvent(ServerEvent{
+			Type:        "message",
+			SenderID:    c.id,
+			RecipientID: msg.Recipient_id,
+			Content:     msg.Content,
 		})
-
-		delivered := true
-		c.sendEvent(ServerEvent{Type: "sent_ack", TempID: ev.TempID, Delivered: &delivered})
-		return
 	}
 
-	// offline -> save only (commented)
-	// err := dbInsertMessage(ev.ConversationID, c.userID, ev.Content)
-	// if err != nil { c.sendError("server error"); return }
-
-	delivered := false
-	c.sendEvent(ServerEvent{Type: "sent_ack", TempID: ev.TempID, Delivered: &delivered})
-}
-
-// =====================
-// Public handler: /ws/chat
-// =====================
-
-func ChatWSHandler(w http.ResponseWriter, r *http.Request) {
-	// You already have cookie.IsAuthenticated(r)
-
-	fmt.Println("WS path:", r.URL.Path)
-	fmt.Println("WS Host:", r.Host)
-	fmt.Println("WS Origin:", r.Header.Get("Origin"))
-	fmt.Println("WS Cookie header:", r.Header.Get("Cookie"))
-	fmt.Printf("WS All cookies: %#v\n", r.Cookies())
-
-	if !cookie.IsAuthenticated(r) {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		fmt.Println("cookies not auth wowowowwo")
-		return
-	}
-
-	// You need a way to get userID from sessionID cookie.
-	// This MUST come from your DB session table query.
-	userID, err := userIDFromSessionCookie(r)
+	err := queries.InsertMessage(1, c.id, msg.Content)
 	if err != nil {
-		http.Error(w, "unauthorized", http.StatusUnauthorized)
-		return
+		fmt.Println("error while inserting messsage in handleMessage", err)
 	}
+	//insert it in the database
 
-	conn, err := chatUpgrader.Upgrade(w, r, nil)
-	if err != nil {
-		return
-	}
-
-	c := &chatClient{
-		userID: userID,
-		conn:   conn,
-		send:   make(chan ServerEvent, 64),
-	}
-
-	// Replace old connection if user reconnects (keeps routing simple)
-	if old, ok := hub.get(userID); ok {
-		_ = old.conn.Close()
-	}
-	hub.setOnline(userID, c)
-
-	// --- DB: mark online (commented) ---
-	// _ = dbMarkUserOnline(userID)
-
-	go c.writePump()
-	go c.readPump()
 }
-
-// =====================
-// Session -> userID (stub)
-// =====================
-
-func userIDFromSessionCookie(r *http.Request) (int64, error) {
-	userID, err := queries.GetUserIDFromSession(r)
-	return int64(userID), err
-}
-
-/*
----------- DB stubs (commented out) ----------
-func dbMarkUserOnline(userID int64) error { return nil }
-func dbMarkUserOffline(userID int64) error { return nil }
-func dbInsertMessage(conversationID, senderID int64, content string) error { return nil }
-func dbIsConversationMember(conversationID, senderID, recipientID int64) (bool, error) { return true, nil }
-*/

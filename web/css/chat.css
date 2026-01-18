@@ -256,3 +256,53 @@
         /* contacts on top, chat below */
     }
 }
+
+.chatsection {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+}
+
+/* Base bubble */
+.message {
+  max-width: 65%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 14px;
+  line-height: 1.4;
+  word-wrap: break-word;
+}
+
+/* Sent */
+.message.to {
+  align-self: flex-end;
+  background: #d33;
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+/* Received */
+.message.from {
+  align-self: flex-start;
+  background: #fff;
+  color: #222;
+  border: 1px solid #ddd;
+  border-bottom-left-radius: 4px;
+}
+
+
+.message {
+  animation: pop .15s ease-in;
+}
+
+@keyframes pop {
+  from {
+    transform: scale(.95);
+    opacity: .6;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
