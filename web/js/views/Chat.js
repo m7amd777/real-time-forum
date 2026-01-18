@@ -161,7 +161,10 @@ export function mount(params) {
       const res = await fetch(`/api/messages?conversation_id=${convId}`);
       if (!res.ok) throw new Error("Failed to load messages");
 
+
       const messages = await res.json();
+      console.log("messages")
+      console.log(messages)
 
       messages.forEach(msg => {
         const div = document.createElement("div");
@@ -170,6 +173,7 @@ export function mount(params) {
         div.textContent = msg.content;
         chat.appendChild(div);
       });
+
 
       chat.scrollTop = chat.scrollHeight;
     } catch (err) {

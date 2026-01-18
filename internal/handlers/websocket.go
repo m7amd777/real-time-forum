@@ -28,6 +28,7 @@ type chatHub struct {
 	mu      sync.RWMutex
 	clients map[int64]*ChatClient // userID -> client
 }
+
 // {"type":"message","conversation_id":1,"recipient_id":2,"content":"sdsgdsudvskdgsgdsdsgdsudvskdgsgdsdsgdsudvskdgsgdsdsgdsudvskdgsgd","temp_id":"1768487398524"}
 type ClientEvent struct {
 	Type            string `json:"type"`
@@ -86,9 +87,6 @@ var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 }
-
-
-
 
 func ChatWSHandler(w http.ResponseWriter, r *http.Request) {
 	auth := cookie.IsAuthenticated(r)
@@ -204,16 +202,20 @@ func (c *ChatClient) handleMessage(msg ClientEvent) {
 	// now := time.Now()
 	fmt.Println("handling the message to", msg.Recipient_id)
 	rc, ok := hub.get(int64(msg.Recipient_id))
-	if !ok {
+	if ok {
 		// recipient is offline, just save to database
-		return
+		rc.sendEvent(ServerEvent{
+			Type:        "message",
+			SenderID:    c.id,
+			RecipientID: msg.Recipient_id,
+			Content:     msg.Content,
+		})
 	}
-	rc.sendEvent(ServerEvent{
-		Type:        "message",
-		SenderID:    c.id,
-		RecipientID: msg.Recipient_id,
-		Content:     msg.Content,
-	})
+
+	err := queries.InsertMessage(1, c.id, msg.Content)
+	if err != nil {
+		fmt.Println("error while inserting messsage in handleMessage", err)
+	}
 	//insert it in the database
 
 }
