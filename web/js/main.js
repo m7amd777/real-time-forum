@@ -1,4 +1,5 @@
 import { router, navigateTo, checkAuth } from "./router.js"
+import { connectWS, closeWS } from "./ws.js"
 //import {getState, setState} from "./state.js"
 // in order to make a single page application we need routing
 // the routing is not just interacting with just buttons and direct referehes
@@ -92,7 +93,7 @@ document.addEventListener("submit", async (e) => {
         alert(result.error);
         return;
       }
-
+      connectWS();
       navigateTo("/")
 
 
@@ -117,7 +118,7 @@ document.addEventListener("submit", async (e) => {
         alert(result.error);
         return;
       }
-
+      connectWS();
       navigateTo("/");
 
     } catch (e) {
@@ -148,36 +149,36 @@ document.addEventListener("submit", async (e) => {
     }
   }
 
-if (formName === "createComment") {
-  try {
-    const formData = new FormData(form);
+  if (formName === "createComment") {
+    try {
+      const formData = new FormData(form);
 
-    const data = {
-      post_id: parseInt(formData.get("post_id"), 10),
-      content: formData.get("content")
-    };
+      const data = {
+        post_id: parseInt(formData.get("post_id"), 10),
+        content: formData.get("content")
+      };
 
-    const res = await fetch("/api/createComment", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      credentials: "include",
-      body: JSON.stringify(data)
-    });
+      const res = await fetch("/api/createComment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(data)
+      });
 
-    const result = await res.json();
+      const result = await res.json();
 
-    if (!res.ok) {
-      alert(result.error);
-      return;
+      if (!res.ok) {
+        alert(result.error);
+        return;
+      }
+
+      console.log("DONEEEEE")
+
+      navigateTo(`/thread?post=${data.post_id}`);
+    } catch (e) {
+      console.error("ERROR CREATING COMMENT:", e);
     }
-
-    console.log("DONEEEEE")
-
-    navigateTo(`/thread?post=${data.post_id}`);
-  } catch (e) {
-    console.error("ERROR CREATING COMMENT:", e);
   }
-}
 
 
 
@@ -186,10 +187,6 @@ if (formName === "createComment") {
 })
 
 
-// const AuthChangeEvent = new CustomEvent("authStateEvent")
 
-// document.addEventListener(AuthChangeEvent, () => {
-//   console.log("user auth state changed")
-// })
-
+connectWS();
 router();

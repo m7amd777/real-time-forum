@@ -60,13 +60,6 @@ func homeHandler(w http.ResponseWriter, r *http.Request) {
 		IsAuthenticated: cookie.IsAuthenticated(r),
 	}
 
-	fmt.Println("WS path:", r.URL.Path)
-	fmt.Println("WS Host:", r.Host)
-	fmt.Println("WS Origin:", r.Header.Get("Origin"))
-	fmt.Println("WS Cookie header:", r.Header.Get("Cookie"))
-	fmt.Printf("WS All cookies: %#v\n", r.Cookies())
-	fmt.Println(data)
-
 	if err := tmpl.Execute(w, data); err != nil {
 		fmt.Println("ansabsbas", err)
 		http.Error(w, "Error rendering template", http.StatusInternalServerError)

@@ -1,5 +1,6 @@
 // router.js
 // Router logic here
+import { closeWS } from "./ws.js"
 let activeUnmount = null; // stores cleanup function for current view
 let activePath = null;
 
@@ -31,8 +32,8 @@ function getParams(match) {
 // --------------------look at this later --------------------------------------
 
 // export async function checkAuth() {
-//     if (localstorage.getItem("isLoggedIn")) return true
-    
+// if (localstorage.getItem("isLoggedIn")) return true  
+
 //     const res = await fetch("/api/auth/status", {
 //         credentials: "include"
 //     });
@@ -47,6 +48,8 @@ function getParams(match) {
 // }
 
 export async function checkAuth() {
+    // if (localStorage.getItem("isLoggedIn") === "true") return true
+
     const res = await fetch("/api/auth/status", {
         credentials: "include"
     });
@@ -54,7 +57,13 @@ export async function checkAuth() {
     if (!res.ok) return false;
 
     const data = await res.json();
-    return data.authenticated === true;
+
+    if (data.authenticated) {
+        // localStorage.setItem("isLoggedIn", "true");
+        return true;
+    }
+
+    return false;
 }
 
 async function logout() {
@@ -65,6 +74,11 @@ async function logout() {
     if (!res.ok) return false;
 
     const data = await res.json();
+
+    // Clear auth state
+    // localStorage.removeItem("isLoggedIn");
+    closeWS();
+
     return data.message === "Logout successful";
 }
 
@@ -144,6 +158,7 @@ export async function router() {
 
         if (!isAuth) {
             history.replaceState(null, "", "/login");
+            closeWS();
             return router();
         }
     }

@@ -22,6 +22,7 @@ type ChatClient struct {
 	id   int
 	conn *websocket.Conn
 	send chan ServerEvent
+	done chan struct{} // signal to prevent duplicate cleanup
 }
 
 type chatHub struct {
@@ -39,10 +40,11 @@ type ClientEvent struct {
 
 // this has to change definitely
 type ServerEvent struct {
-	Type        string `json:"type"`
-	SenderID    int    `json:"sender_id"`
-	RecipientID int    `json:"recipient_id"`
-	Content     string `json:"content"`
+	Type        string  `json:"type"`
+	SenderID    int     `json:"sender_id"`
+	RecipientID int     `json:"recipient_id"`
+	Content     string  `json:"content"`
+	OnlineUsers []int64 `json:"online_users,omitempty"`
 }
 
 func newChatHub() *chatHub {
@@ -53,6 +55,7 @@ func (h *chatHub) setOnline(userID int64, c *ChatClient) {
 	h.mu.Lock()
 	h.clients[userID] = c
 	h.mu.Unlock()
+	h.broadcastOnlineUsers()
 }
 
 func (h *chatHub) setOffline(userID int64, c *ChatClient) {
@@ -61,6 +64,7 @@ func (h *chatHub) setOffline(userID int64, c *ChatClient) {
 		delete(h.clients, userID)
 	}
 	h.mu.Unlock()
+	h.broadcastOnlineUsers()
 }
 
 func (h *chatHub) get(userID int64) (*ChatClient, bool) {
@@ -88,6 +92,16 @@ var upgrader = websocket.Upgrader{
 	WriteBufferSize: 1024,
 }
 
+func (h *chatHub) trackingUsers() {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	fmt.Println("Online users:")
+	for userID, client := range h.clients {
+		fmt.Printf("UserID: %d, ClientID: %d\n", userID, client.id)
+	}
+}
+
 func ChatWSHandler(w http.ResponseWriter, r *http.Request) {
 	auth := cookie.IsAuthenticated(r)
 	if !auth {
@@ -99,14 +113,14 @@ func ChatWSHandler(w http.ResponseWriter, r *http.Request) {
 	//now call the damn upgrader
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		fmt.Println("Failed to upgrade the cookie", err)
-
+		fmt.Println("Failed to upgrade:", err)
 		return
 	}
 
 	clientID, err := queries.GetUserIDFromSession(r)
 	if err != nil {
 		fmt.Println("COULD NOT GET USER ID, ABORTING")
+		conn.Close()
 		return
 	}
 
@@ -115,8 +129,13 @@ func ChatWSHandler(w http.ResponseWriter, r *http.Request) {
 		id:   clientID,
 		conn: conn,
 		send: make(chan ServerEvent, 64),
+		done: make(chan struct{}),
 	}
 	hub.setOnline(int64(clientID), c)
+	hub.trackingUsers()
+	fmt.Printf("User %d connected\n", clientID)
+
+	hub.trackingUsers() // Call it once to see current state
 
 	go c.readPump()
 	go c.writePump()
@@ -124,40 +143,57 @@ func ChatWSHandler(w http.ResponseWriter, r *http.Request) {
 
 // loop to read anything a client sends
 func (c *ChatClient) readPump() {
+	defer func() {
+		select {
+		case <-c.done:
+			// Already cleaned up
+		default:
+			close(c.done)
+			hub.setOffline(int64(c.id), c)
+			c.conn.Close()
+			fmt.Printf("User %d disconnected\n", c.id)
+			hub.trackingUsers()
+		}
+	}()
+
 	for {
 		_, p, err := c.conn.NextReader()
 		if err != nil {
-			fmt.Println("err")
+			fmt.Println("connection error:", err)
 			break
 		}
 
 		var msg ClientEvent
-
 		dec := json.NewDecoder(p)
 		err = dec.Decode(&msg)
 		if err != nil {
-			fmt.Println("payload error")
-			fmt.Println(err)
+			fmt.Println("payload error:", err)
+			continue
 		}
-		//knowing type of message
 
 		switch msg.Type {
 		case "message":
 			c.handleMessage(msg)
 		default:
-			//send client first
-			fmt.Println("client error")
+			fmt.Println("unknown message type:", msg.Type)
 		}
-
 	}
-
 }
 
 func (c *ChatClient) writePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
-		_ = c.conn.Close()
+		select {
+		case <-c.done:
+			// Already cleaned up
+		default:
+			close(c.done)
+			hub.setOffline(int64(c.id), c)
+			_ = c.conn.Close()
+			fmt.Printf("User %d disconnected\n", c.id)
+			hub.trackingUsers()
+		}
 	}()
 
 	for {
@@ -218,4 +254,44 @@ func (c *ChatClient) handleMessage(msg ClientEvent) {
 	}
 	//insert it in the database
 
+}
+
+func GetOnlineUsersHandler(w http.ResponseWriter, r *http.Request) {
+	hub.trackingUsers() // Debug output
+
+	users := hub.getOnlineUsers()
+	json.NewEncoder(w).Encode(map[string]interface{}{
+		"online_users": users,
+		"count":        len(users),
+	})
+}
+
+func (h *chatHub) getOnlineUsers() []int64 {
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	users := make([]int64, 0, len(h.clients))
+	for userID := range h.clients {
+		users = append(users, userID)
+	}
+	return users
+}
+
+func (h *chatHub) broadcastOnlineUsers() {
+	onlineUsers := h.getOnlineUsers()
+	event := ServerEvent{
+		Type:        "online_users",
+		OnlineUsers: onlineUsers,
+	}
+
+	h.mu.RLock()
+	defer h.mu.RUnlock()
+
+	for _, client := range h.clients {
+		select {
+		case client.send <- event:
+		default:
+			// Client's send channel is full, skip
+		}
+	}
 }
