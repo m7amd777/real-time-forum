@@ -137,6 +137,28 @@ body {
 
 
 
+.trackinglist {
+    /* flex: 1 1 0; */
+    max-width: 150px;
+    min-width: 270px;
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    margin: 50px auto;
+    padding: 25px;
+    box-sizing: border-box;
+    background-color:#ffffff;
+    backdrop-filter: blur(20px);
+    border-radius: 15px;
+    border: 1px solid rgba(233, 69, 96, 0.2);
+    align-items: left;
+}
+
+
+
+
 
 
 

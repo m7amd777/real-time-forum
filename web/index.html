@@ -12,8 +12,6 @@
     <link rel="stylesheet" href="/static/css/chat.css" />
     <link rel="stylesheet" href="/static/css/thread.css" />
     <link rel="stylesheet" href="/static/css/auth.css" />
-
-
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Poppins:wght@400;500;600;700&display=swap"
@@ -27,57 +25,66 @@
         <a href="/" id="home" style="font-family:tekk; font-size:30px; display: fit-content;">
             TEKKEN FORUM
         </a>
-       
+
         <input type="checkbox" class="sidebar-toggle" id="sidebar-toggle" style="display:none;">
         <label for="sidebar-toggle" class="sidebar-toggle-label">
             <span class="material-icons">menu</span>
         </label>
-        
+
     </nav>
 
 
     <!-- <label for="sidebar-toggle" class="overlay" aria-hidden="true"></label> -->
 
     <div class="main-content">
+
+        <!-- Online Users Section -->
+        <div class="trackinglist" id="aa">
+            <h2>Online Users</h2>
+            <ul id="globalOnlineUsers" class="onlineUsersList">
+                <!-- Populated by WebSocket -->
+            </ul>
+        </div>
         <div class="post-container" id="mainarea">
             <!-- example file -->
         </div>
+
         <aside class="side-bar" id="sidebar">
 
             <!-- create side bar id content -->
             <div class="categories-bar2">
-            <h2>Messaging</h2>
-            <button id="chatBtn" class="red-btn" data-action="Chat">Check Messages</button>
+                <h2>Messagisaang</h2>
+                <button id="chatBtn" class="red-btn" data-action="Chat">Check Messages</button>
             </div>
 
 
-            <div class ="categories-bar2">
-            <h2>Messaging</h2>
-            <button id="add" class="red-btn" data-action="Create">Add post</button>
+            <div class="categories-bar2">
+                <h2>Messaging</h2>
+                <button id="add" class="red-btn" data-action="Create">Add post</button>
             </div>
 
 
             <div class="categories-bar2">
                 <h2>Look Into:</h2>
                 <a href="/posts?category=General" data-link style="text-decoration:none;">
-  <h1>General</h1>
-</a>
+                    <h1>General</h1>
+                </a>
 
-<a href="/posts?category=Technology" data-link style="text-decoration:none;">
-  <h1>Technology</h1>
-</a>
+                <a href="/posts?category=Technology" data-link style="text-decoration:none;">
+                    <h1>Technology</h1>
+                </a>
 
-<a href="/posts?category=Sports" data-link style="text-decoration:none;">
-  <h1>Sports</h1>
-</a>
+                <a href="/posts?category=Sports" data-link style="text-decoration:none;">
+                    <h1>Sports</h1>
+                </a>
 
-<a href="/posts?category=Music" data-link style="text-decoration:none;">
-  <h1>Music</h1>
-</a>
+                <a href="/posts?category=Music" data-link style="text-decoration:none;">
+                    <h1>Music</h1>
+                </a>
 
-<a href="/posts?category=Gaming" data-link style="text-decoration:none;">
-  <h1>Gaming</h1>
-</a>
+                <a href="/posts?category=Gaming" data-link style="text-decoration:none;">
+                    <h1>Gaming</h1>
+                </a>
 
             </div>
             <!-- <div class="filters-bar2">
@@ -90,17 +97,18 @@
                 </a>
             </div> -->
 
-            <div class ="filters-bar2"><h2>User Actions</h2>
-            
-                   <a href="/logout" style="text-decoration:none;">
+            <div class="filters-bar2">
+                <h2>User Actions</h2>
+
+                <a href="/logout" style="text-decoration:none;">
                     <h1>Logout</h1>
                 </a>
-            
-    
-                   <!-- <a href="/login" data-link="login" style="text-decoration:none;">
+
+
+                <!-- <a href="/login" data-link="login" style="text-decoration:none;">
                     <h1>Login</h1>
                 </a> -->
-              
+
             </div>
         </aside>
 
