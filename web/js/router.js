@@ -5,17 +5,19 @@ let activeUnmount = null; // stores cleanup function for current view
 let activePath = null;
 
 
+// added a layout flag that allows us to mark which views have the layout and which dont 
 const routes = [
-    { path: "/", view: () => import("./views/Home.js"), protected: true },
-    { path: "/posts", view: () => import("./views/Home.js"), protected: true },
-    { path: "/chat", view: () => import("./views/Chat.js"), protected: true },
-    { path: "/thread", view: () => import("./views/Thread.js"), protected: true },
-    { path: "/create", view: () => import("./views/Create.js"), protected: true },
+    { path: "/", view: () => import("./views/Home.js"), protected: true, layout: true },
+    { path: "/posts", view: () => import("./views/Home.js"), protected: true, layout: true },
+    { path: "/chat", view: () => import("./views/Chat.js"), protected: true, layout: true },
+    { path: "/thread", view: () => import("./views/Thread.js"), protected: true, layout: true },
+    { path: "/create", view: () => import("./views/Create.js"), protected: true, layout: true },
 
-    { path: "/login", view: () => import("./views/Login.js") },
-    { path: "/register", view: () => import("./views/Register.js") },
-    { path: "/logout", view: () => import("./views/Login.js") },
+    { path: "/login", view: () => import("./views/Login.js"), layout: false },
+    { path: "/register", view: () => import("./views/Register.js"), layout: false },
+    { path: "/logout", view: () => import("./views/Login.js"), layout: false },
 ];
+
 
 // --------------------looking at the path to regex----------------------- and getting params
 
@@ -110,11 +112,13 @@ export async function navigateTo(url) {
 function renderLayout() {
     renderNavBar();
     renderSideBar();
+    renderTrackingList();
 }
 
 function unrenderLayout() {
     unrenderNavBar();
     unrenderSideBar();
+    unrenderTrackingList();
 }
 
 
@@ -139,6 +143,16 @@ function unrenderSideBar() {
     side.style.display = "none";
 }
 
+function unrenderTrackingList(){
+    let list = document.getElementById("aa")
+    if (list) list.style.display = "none";
+}
+
+
+function renderTrackingList(){
+    let list = document.getElementById("aa")
+    if (list) list.style.display = "";
+}
 
 export async function router() {
     const isAuth = await checkAuth();
@@ -150,9 +164,17 @@ export async function router() {
 
 
 
-    if (!match) {
-        match = { route: { view: () => import("./views/NotFound.js") }, result: [location.pathname] }
-    }
+   if (!match) {
+    match = {
+        route: {
+            view: () => import("./views/Error.js"),
+            params: { code: 404, message: "Page Not Found" },
+            layout: false
+        },
+        result: [location.pathname]
+    };
+}
+
 
     if (match.route.protected) {
 
@@ -197,7 +219,7 @@ export async function router() {
 
     //putting the app and calling the function using the params we need
 
-    if (isAuth) {
+    if (match.route.layout && isAuth) {
         renderLayout();
     } else {
         unrenderLayout();
@@ -205,10 +227,17 @@ export async function router() {
 
     //it was app
     const app = document.querySelector("#mainarea")
+    let params = {};
 
-    let params = getParams(match)
+    if (match.route.params) {
+        params = match.route.params;
+
+        console.log(" params = match.route.params; ", params)
+    } else {
+        params = getParams(match);
+    }
+
     app.innerHTML = await view(params)
-
 
     if (typeof viewModule.mount === "function") {
         const maybeUnmount = viewModule.mount(params);
