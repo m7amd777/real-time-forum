@@ -12,7 +12,7 @@ var DB *sql.DB
 
 func InitDB() {
 	var err error
-	DB, err = sql.Open("sqlite3", "database.db")
+	DB, err = sql.Open("sqlite3", "cmd/database.db")
 	if err != nil {
 		log.Fatal(err)
 	}

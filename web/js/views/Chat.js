@@ -1,9 +1,13 @@
+import { connectState } from '../ws.js';
+
 // views/Chat.js
 let ws = null;
 let allUsers = [];
 let allConversations = [];
-let currentRecipient = null;
-let currentConversation = null;
+const chatState = {
+  currentRecipient: null,
+  currentConversation: null,
+};
 
 export default async function ChatView() {
   return `
@@ -53,6 +57,14 @@ export function mount(params) {
     }
   }
 
+  function notifyUser(userId) {
+    const li = usersContainer.querySelector(
+      `.userContact[data-userid='${userId}']`
+    );
+    if (!li) return;
+    li.classList.add("notify");
+  }
+
   async function loadConversations() {
     try {
       const res = await fetch("/api/conversations");
@@ -63,6 +75,29 @@ export function mount(params) {
     } catch (err) {
       console.error("Load conversations error:", err);
     }
+  }
+
+  function formatTimestamp(ts) {
+    if (!ts) return "";
+    const d = new Date(ts);
+    return isNaN(d) ? ts : d.toLocaleString();
+  }
+
+  function createMessageElement(content, direction, timestamp) {
+    const div = document.createElement("div");
+    div.classList.add("message", direction);
+
+    const text = document.createElement("div");
+    text.className = "message-text";
+    text.textContent = content;
+
+    const time = document.createElement("div");
+    time.className = "message-time";
+    time.textContent = formatTimestamp(timestamp);
+
+    div.appendChild(text);
+    div.appendChild(time);
+    return div;
   }
 
   // =======================
@@ -132,8 +167,8 @@ export function mount(params) {
   }
 
   function selectConversation(convId, userId, name) {
-    currentConversation = convId;
-    currentRecipient = String(userId);
+    chatState.currentConversation = convId;
+    chatState.currentRecipient = String(userId);
 
     document.querySelectorAll(".userContact").forEach(li =>
       li.classList.remove("active")
@@ -144,13 +179,19 @@ export function mount(params) {
     );
     if (selectedLi) selectedLi.classList.add("active");
 
+    // clear notification badge for this user
+    const notifyLi = usersContainer.querySelector(
+      `.userContact[data-userid='${userId}']`
+    );
+    if (notifyLi) notifyLi.classList.remove("notify");
+
     const header = document.querySelector(".usercard p");
-    if (header) header.textContent = `${name} - active`;
+    if (header) header.textContent = `${name}`;
 
     chat.innerHTML = "";
     loadMessages(convId);
 
-    console.log("Conversation selected:", currentConversation, currentRecipient);
+    console.log("Conversation selected:", chatState.currentConversation, chatState.currentRecipient);
   }
 
   // =======================
@@ -167,11 +208,9 @@ export function mount(params) {
       console.log(messages)
 
       messages.forEach(msg => {
-        const div = document.createElement("div");
-        div.classList.add("message");
-        div.classList.add(Number(msg.sender_id) === Number(currentRecipient) ? "from" : "to");
-        div.textContent = msg.content;
-        chat.appendChild(div);
+        const direction = Number(msg.sender_id) === Number(chatState.currentRecipient) ? "from" : "to";
+        const bubble = createMessageElement(msg.content, direction, msg.timestamp || msg.created_at);
+        chat.appendChild(bubble);
       });
 
 
@@ -216,12 +255,17 @@ export function mount(params) {
       const msg = JSON.parse(event.data);
 
       if (msg.type === "message") {
-        const div = document.createElement("div");
-        div.classList.add("message");
-        div.classList.add(Number(msg.sender_id) === Number(currentRecipient) ? "from" : "to");
-        div.textContent = msg.content;
-        chat.appendChild(div);
-        chat.scrollTop = chat.scrollHeight;
+        const senderId = String(msg.sender_id);
+        const isActive = chatState.currentRecipient && senderId === chatState.currentRecipient;
+
+        if (isActive) {
+          const direction = Number(msg.sender_id) === Number(chatState.currentRecipient) ? "from" : "to";
+          const bubble = createMessageElement(msg.content, direction, msg.timestamp || msg.created_at);
+          chat.appendChild(bubble);
+          chat.scrollTop = chat.scrollHeight;
+        } else {
+          notifyUser(senderId);
+        }
       }
     } catch (e) {
       console.error("Parse error:", e);
@@ -235,12 +279,12 @@ export function mount(params) {
     const text = entry.value.trim();
     if (!text) return;
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    if (!currentRecipient) return alert("Select a user first");
+    if (!chatState.currentRecipient) return alert("Select a user first");
 
     const message = {
       type: "message",
-      conversation_id: currentConversation,
-      recipient_id: Number(currentRecipient),
+      conversation_id: chatState.currentConversation,
+      recipient_id: Number(chatState.currentRecipient),
       content: text,
       temp_id: Date.now().toString()
     };
@@ -249,10 +293,8 @@ export function mount(params) {
     entry.value = "";
 
     // locally add bubble immediately
-    const div = document.createElement("div");
-    div.classList.add("message", "to");
-    div.textContent = text;
-    chat.appendChild(div);
+    const bubble = createMessageElement(text, "to", new Date().toISOString());
+    chat.appendChild(bubble);
     chat.scrollTop = chat.scrollHeight;
   };
 

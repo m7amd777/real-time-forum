@@ -1,5 +1,9 @@
 /* when using live server fro frontend development, swich path relative to html file chosen. */
 
+:root {
+    --sidebar-w: 260px;
+}
+
 @font-face {
     font-family: tekk;
     src: url('/static/assets/tarrgetexpandital.ttf');
@@ -139,8 +143,12 @@ body {
 
 .trackinglist {
     /* flex: 1 1 0; */
-    max-width: 150px;
-    min-width: 270px;
+    position: fixed;
+    top: 0;
+    left: 0;
+
+    width: var(--sidebar-w);
+    max-width: 270px;
     height: 100%;
     overflow-y: auto;
     overflow-x: hidden;
@@ -149,14 +157,16 @@ body {
     margin: 50px auto;
     padding: 25px;
     box-sizing: border-box;
-    background-color:#ffffff;
+    background-color: #ffffff;
     backdrop-filter: blur(20px);
-    border-radius: 15px;
+    /* border-radius: 15px; */
     border: 1px solid rgba(233, 69, 96, 0.2);
     align-items: left;
 }
 
-
+#headingma {
+    color: #AA0404;
+}
 
 
 
@@ -186,6 +196,7 @@ body {
     display: flex;
     flex-direction: column;
     margin: 50px auto;
+    margin-left: var(--sidebar-w);
     padding: 25px;
     box-sizing: border-box;
     backdrop-filter: blur(20px);

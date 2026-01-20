@@ -36,6 +36,7 @@ type ClientEvent struct {
 	Conversation_id int    `json:"conversation_id"`
 	Recipient_id    int    `json:"recipient_id"`
 	Content         string `json:"content"`
+	TimeStamp       string `json:"time"`
 }
 
 // this has to change definitely
@@ -44,6 +45,7 @@ type ServerEvent struct {
 	SenderID    int     `json:"sender_id"`
 	RecipientID int     `json:"recipient_id"`
 	Content     string  `json:"content"`
+	Timestamp   string  `json:"timestamp,omitempty"`
 	OnlineUsers []int64 `json:"online_users,omitempty"`
 }
 
@@ -245,6 +247,7 @@ func (c *ChatClient) handleMessage(msg ClientEvent) {
 			SenderID:    c.id,
 			RecipientID: msg.Recipient_id,
 			Content:     msg.Content,
+			Timestamp:   time.Now().UTC().Format(time.RFC3339),
 		})
 	}
 
