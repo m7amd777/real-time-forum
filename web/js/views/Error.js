@@ -3,10 +3,6 @@ export default function ErrorView(ErrorObj) {
     <div class="auth-page">
       <div class="authcard error-card">
 
-        <div class="authcard-header">
-          <p>Error</p>
-        </div>
-
         <div class="error-body">
           <div class="error-code">${ErrorObj.code}</div>
           <div class="error-message">${ErrorObj.message}</div>

@@ -19,6 +19,23 @@ const routes = [
 ];
 
 
+// -------------------- to rener error pages more efficiently----------------------- 
+
+
+async function renderError(ErrorObj) {
+    // hide layout
+    unrenderLayout();
+
+    // load error view
+    const module = await import("./views/Error.js");
+    const view = module.default;
+
+    // render
+    const app = document.querySelector("#mainarea");
+    app.innerHTML = await view(ErrorObj);
+}
+
+
 // --------------------looking at the path to regex----------------------- and getting params
 
 function pathToRegex(path) {
@@ -165,16 +182,8 @@ export async function router() {
 
 
    if (!match) {
-    match = {
-        route: {
-            view: () => import("./views/Error.js"),
-            params: { code: 404, message: "Page Not Found" },
-            layout: false
-        },
-        result: [location.pathname]
-    };
+    return renderError({code : 404, message: "Page Not Found"});
 }
-
 
     if (match.route.protected) {
 
