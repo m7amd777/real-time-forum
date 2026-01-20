@@ -1,4 +1,4 @@
-import { router, navigateTo, checkAuth } from "./router.js"
+import { router, navigateTo, checkAuth, renderError } from "./router.js";
 import { connectWS, closeWS } from "./ws.js"
 //import {getState, setState} from "./state.js"
 // in order to make a single page application we need routing
@@ -89,10 +89,16 @@ document.addEventListener("submit", async (e) => {
 
       const result = await res.json();
 
-      if (!res.ok) {
+       if (!res.ok) {
+        if(res.status === 405){
+            renderError({code : res.status, message: "Method not allowed"});
+        return;
+        }
+        
         alert(result.error);
         return;
       }
+
       connectWS();
       navigateTo("/")
 
@@ -115,9 +121,15 @@ document.addEventListener("submit", async (e) => {
       const result = await res.json();
 
       if (!res.ok) {
+        if(res.status === 405){
+            renderError({code : res.status, message: "Method not allowed"});
+        return;
+        }
+        
         alert(result.error);
         return;
       }
+
       connectWS();
       navigateTo("/");
 
@@ -139,9 +151,15 @@ document.addEventListener("submit", async (e) => {
       const result = await res.json();
 
       if (!res.ok) {
+        if(res.status === 405){
+            renderError({code : res.status, message: "Method not allowed"});
+        return;
+        }
+        
         alert(result.error);
         return;
       }
+
       navigateTo("/");
 
     } catch (e) {
@@ -168,9 +186,15 @@ document.addEventListener("submit", async (e) => {
       const result = await res.json();
 
       if (!res.ok) {
+        if(res.status === 405){
+            renderError({code : res.status, message: "Method not allowed"});
+        return;
+        }
+        
         alert(result.error);
         return;
       }
+
 
       console.log("DONEEEEE")
 

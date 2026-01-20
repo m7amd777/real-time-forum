@@ -22,7 +22,7 @@ const routes = [
 // -------------------- to rener error pages more efficiently----------------------- 
 
 
-async function renderError(ErrorObj) {
+export async function renderError(ErrorObj) {
     // hide layout
     unrenderLayout();
 
