@@ -51,13 +51,6 @@ export function mount(params) {
     }
   }
 
-  // function notifyUser(userId) {
-  //   const li = usersContainer.querySelector(
-  //     `.userContact[data-userid='${userId}']`
-  //   );
-  //   if (!li) return;
-  //   li.classList.add("notify");
-  // }
 
   //load the conversations that are available
   async function loadConversations() {
@@ -102,51 +95,6 @@ export function mount(params) {
     return div;
   }
 
-  // =======================
-  // RENDER FUNCTIONS
-  // =======================
-  // function renderConversations(convs) {
-  //   usersContainer.innerHTML = "";
-
-  //   convs.forEach(c => {
-  //     const li = document.createElement("li");
-  //     li.className = "userContact";
-  //     li.dataset.conversationid = c.id;
-  //     li.dataset.userid = c.user_id;
-
-  //     li.innerHTML = `
-  //       <span class="contactUsername">${c.username}</span>
-  //       <span class="contactStatus online">●</span>
-  //     `;
-
-  //     li.addEventListener("click", () => {
-  //       selectConversation(c.id, c.user_id, c.username);
-  //     });
-
-  //     usersContainer.appendChild(li);
-  //   });
-  // }
-
-  // function renderUsers(users) {
-  //   usersContainer.innerHTML = "";
-
-  //   users.forEach(u => {
-  //     const li = document.createElement("li");
-  //     li.className = "userContact";
-  //     li.dataset.userid = u.id;
-
-  //     li.innerHTML = `
-  //       <span class="contactUsername">${u.username}</span>
-  //       <span class="contactStatus online">●</span>
-  //     `;
-
-  //     li.addEventListener("click", () => {
-  //       selectRecipient(u.id, u.username);
-  //     });
-
-  //     usersContainer.appendChild(li);
-  //   });
-  // }
 
   // =======================
   // SELECT FUNCTIONS
@@ -185,12 +133,6 @@ export function mount(params) {
       `.userContact[data-conversationid='${convId}']`
     );
     if (selectedLi) selectedLi.classList.add("active");
-
-    // clear notification badge for this user
-    // const notifyLi = usersContainer.querySelector(
-    //   `.userContact[data-userid='${userId}']`
-    // );
-    // if (notifyLi) notifyLi.classList.remove("notify");
 
     const header = document.querySelector(".usercard p");
     if (header) header.textContent = `${name}`;
@@ -283,33 +225,12 @@ export function mount(params) {
       loadMessages(chatState.currentConversation, messageOffset, true);
     }
   }, 300);
-
   chat.addEventListener("scroll", handleChatScroll);
 
-  // =======================
-  // SEARCH
-  // =======================
-  // search.addEventListener("input", e => {
-  //   const value = e.target.value.toLowerCase();
 
-  //   if (!value) {
-  //     renderConversations(allConversations);
-  //     return;
-  //   }
 
-  //   const filtered = allUsers.filter(u =>
-  //     u.username.toLowerCase().includes(value)
-  //   );
 
-  //   renderUsers(filtered);
-  // });
-
-  // =======================
-  // WEBSOCKET
-  // =======================
-  // const proto = window.location.protocol === "https:" ? "wss" : "ws";
-  // const url = `${proto}://${window.location.host}/ws/chat`;
-
+  //opening WS function
   ws = connectWS();
 
 

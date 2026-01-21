@@ -54,6 +54,8 @@ function lookupUsername(userId) {
   return user ? user.username : null;
 }
 
+let allConversations = [];
+
 async function extractUsers() {
   const res = await fetch("/api/users", {
     credentials: "include"
@@ -67,6 +69,19 @@ async function extractUsers() {
   lastUsersFetchTime = Date.now();
 }
 
+async function extractConversations() {
+  try {
+    const res = await fetch("/api/conversations", {
+      credentials: "include"
+    });
+    if (!res.ok) return [];
+    allConversations = await res.json();
+    return allConversations;
+  } catch (err) {
+    console.error("Failed to fetch conversations:", err);
+    return [];
+  }
+}
 
 async function renderOnlineUsers(onlineUserIds) {
   console.log("rendering online users")
@@ -75,6 +90,9 @@ async function renderOnlineUsers(onlineUserIds) {
     await extractUsers();
   }
 
+  // Always fetch conversations for ordering
+  await extractConversations();
+
   const container = document.getElementById("globalOnlineUsers");
   const count = document.getElementById("onlineCount");
   if (!container) {
@@ -82,43 +100,54 @@ async function renderOnlineUsers(onlineUserIds) {
     return;
   }
 
-  // Separate users into online and offline arrays
-  const onlineUsers = [];
-  const offlineUsers = [];
-  console.log(onlineUsers, "onlineUsers")
-  console.log(offlineUsers, "offlineUsers")
+  // Create a map of user_id -> conversation (for users with conversations)
+  const conversationMap = new Map();
+  allConversations.forEach(conv => {
+    conversationMap.set(conv.user_id, conv);
+  });
+
+  // Separate users into three categories
+  const usersWithConversations = [];
+  const usersWithoutConversations = [];
+
   connectState.allUsers.forEach(user => {
-    if (onlineUserIds.includes(user.id)) {
-      onlineUsers.push(user);
+    if (conversationMap.has(user.id)) {
+      usersWithConversations.push({
+        ...user,
+        conversation: conversationMap.get(user.id)
+      });
     } else {
-      offlineUsers.push(user);
+      usersWithoutConversations.push(user);
     }
   });
 
-  if (onlineUserIds.length === 0) {
-    container.innerHTML = "<p>No users online</p>";
-    return;
-  }
+  // Sort users with conversations by updated_at (already ordered from backend, but ensure)
+  usersWithConversations.sort((a, b) => {
+    const timeA = new Date(a.conversation.updated_at || 0);
+    const timeB = new Date(b.conversation.updated_at || 0);
+    return timeB - timeA; // DESC (most recent first)
+  });
 
-  const heading1 = document.createElement("h3");
-  const heading2 = document.createElement("h3");
-  heading1.id = "headingma";
-  heading2.id = "headingma";
-  heading1.textContent = "Online";
-  heading2.textContent = "Offline";
+  // Sort users without conversations alphabetically
+  usersWithoutConversations.sort((a, b) =>
+    a.username.localeCompare(b.username)
+  );
 
-  //online users----------------------------
+  // Combine: conversations first, then alphabetical
+  const sortedUsers = [...usersWithConversations, ...usersWithoutConversations];
+
+  // Render
   container.innerHTML = "";
-  container.appendChild(heading1);
 
-  onlineUsers.forEach(u => {
+  sortedUsers.forEach(u => {
+    const isOnline = onlineUserIds.includes(u.id);
     const li = document.createElement("li");
     li.className = "userContact";
     li.dataset.userid = u.id;
 
     li.innerHTML = `
         <span class="contactUsername">${u.username}</span>
-        <span class="contactStatus online">●</span>
+        <span class="contactStatus ${isOnline ? 'online' : 'offline'}">●</span>
       `;
 
     li.addEventListener("click", async () => {
@@ -136,36 +165,8 @@ async function renderOnlineUsers(onlineUserIds) {
     container.appendChild(li);
   });
 
-  //offline users------------------------------------------------------------
-  container.appendChild(heading2);
-
-  offlineUsers.forEach(u => {
-    const li = document.createElement("li");
-    li.className = "userContact";
-    li.dataset.userid = u.id;
-
-    li.innerHTML = `
-        <span class="contactUsername">${u.username}</span>
-        <span class="contactStatus offline">●</span>
-      `;
-
-    li.addEventListener("click", async () => {
-      uiFlags.targetUser = { id: u.id, username: u.username };
-      try {
-        const { navigateTo } = await import("./router.js");
-        await navigateTo("/chat");
-      } catch (err) {
-        console.error("Failed to navigate to chat:", err);
-        window.location.href = "/chat";
-      }
-    });
-
-    container.appendChild(li);
-  });
-
-  count.innerHTML = `
-    Online Users (${onlineUsers.length})
-  `;
+  const onlineCount = sortedUsers.filter(u => onlineUserIds.includes(u.id)).length;
+  count.innerHTML = `Online Users (${onlineCount})`;
 }
 
 export function connectWS() {
@@ -219,6 +220,11 @@ export function connectWS() {
           } else {
             const senderName = lookupUsername(senderId) || "Someone";
             showChatToast(`${senderName} sent you a message. Open chat to view.`);
+          }
+
+          // Re-render user list to move this conversation to top
+          if (connectState.onlineUsers) {
+            renderOnlineUsers(connectState.onlineUsers);
           }
           break;
       }
