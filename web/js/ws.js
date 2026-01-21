@@ -102,9 +102,13 @@ async function renderOnlineUsers(onlineUserIds) {
 
   // Create a map of user_id -> conversation (for users with conversations)
   const conversationMap = new Map();
-  allConversations.forEach(conv => {
-    conversationMap.set(conv.user_id, conv);
-  });
+  console.log(allConversations)
+  if (allConversations) {
+    allConversations.forEach(conv => {
+      conversationMap.set(conv.user_id, conv);
+    });
+  }
+
 
   // Separate users into three categories
   const usersWithConversations = [];
