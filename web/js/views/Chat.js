@@ -4,24 +4,14 @@ import { connectState, connectWS, uiFlags } from '../ws.js';
 let ws = null;
 let allUsers = [];
 let allConversations = [];
-const chatState = {
+export const chatState = {
   currentRecipient: null,
   currentConversation: null,
 };
 
-export default async function ChatView() {
+export default async function ChatView(params) {
   return `
     <div class="chatarea">
-      <div class="usersList">
-        <input 
-          type="text" 
-          id="userSearch" 
-          placeholder="Search users..." 
-          class="userSearch"
-        />
-        <ul id="usersContainer"></ul>
-      </div>
-
       <div class="chatspace">
         <div class="usercard">
           <p>Select a user</p>
@@ -39,15 +29,15 @@ export default async function ChatView() {
 }
 
 export function mount(params) {
-
+  console.log("params that are being used", params)
   uiFlags.chatOpen = true;
 
 
-  const usersContainer = document.getElementById("usersContainer");
+  // const usersContainer = document.getElementById("usersContainer");
   const chat = document.getElementById("chatsection");
   const sendBtn = document.getElementById("sendBtn");
   const entry = document.getElementById("entry");
-  const search = document.getElementById("userSearch");
+  // const search = document.getElementById("userSearch");
 
   // =======================
   // LOAD DATA
@@ -61,21 +51,29 @@ export function mount(params) {
     }
   }
 
-  function notifyUser(userId) {
-    const li = usersContainer.querySelector(
-      `.userContact[data-userid='${userId}']`
-    );
-    if (!li) return;
-    li.classList.add("notify");
-  }
+  // function notifyUser(userId) {
+  //   const li = usersContainer.querySelector(
+  //     `.userContact[data-userid='${userId}']`
+  //   );
+  //   if (!li) return;
+  //   li.classList.add("notify");
+  // }
 
+  //load the conversations that are available
   async function loadConversations() {
     try {
       const res = await fetch("/api/conversations");
       if (!res.ok) throw new Error("Failed to fetch conversations");
 
       allConversations = await res.json();
-      renderConversations(allConversations);
+      // renderConversations(allConversations);
+
+      // If user clicked from global list, auto-open chat with them
+      if (uiFlags.targetUser) {
+        const { id, username } = uiFlags.targetUser;
+        uiFlags.targetUser = null;
+        selectRecipient(id, username);
+      }
     } catch (err) {
       console.error("Load conversations error:", err);
     }
@@ -107,48 +105,48 @@ export function mount(params) {
   // =======================
   // RENDER FUNCTIONS
   // =======================
-  function renderConversations(convs) {
-    usersContainer.innerHTML = "";
+  // function renderConversations(convs) {
+  //   usersContainer.innerHTML = "";
 
-    convs.forEach(c => {
-      const li = document.createElement("li");
-      li.className = "userContact";
-      li.dataset.conversationid = c.id;
-      li.dataset.userid = c.user_id;
+  //   convs.forEach(c => {
+  //     const li = document.createElement("li");
+  //     li.className = "userContact";
+  //     li.dataset.conversationid = c.id;
+  //     li.dataset.userid = c.user_id;
 
-      li.innerHTML = `
-        <span class="contactUsername">${c.username}</span>
-        <span class="contactStatus online">●</span>
-      `;
+  //     li.innerHTML = `
+  //       <span class="contactUsername">${c.username}</span>
+  //       <span class="contactStatus online">●</span>
+  //     `;
 
-      li.addEventListener("click", () => {
-        selectConversation(c.id, c.user_id, c.username);
-      });
+  //     li.addEventListener("click", () => {
+  //       selectConversation(c.id, c.user_id, c.username);
+  //     });
 
-      usersContainer.appendChild(li);
-    });
-  }
+  //     usersContainer.appendChild(li);
+  //   });
+  // }
 
-  function renderUsers(users) {
-    usersContainer.innerHTML = "";
+  // function renderUsers(users) {
+  //   usersContainer.innerHTML = "";
 
-    users.forEach(u => {
-      const li = document.createElement("li");
-      li.className = "userContact";
-      li.dataset.userid = u.id;
+  //   users.forEach(u => {
+  //     const li = document.createElement("li");
+  //     li.className = "userContact";
+  //     li.dataset.userid = u.id;
 
-      li.innerHTML = `
-        <span class="contactUsername">${u.username}</span>
-        <span class="contactStatus online">●</span>
-      `;
+  //     li.innerHTML = `
+  //       <span class="contactUsername">${u.username}</span>
+  //       <span class="contactStatus online">●</span>
+  //     `;
 
-      li.addEventListener("click", () => {
-        selectRecipient(u.id, u.username);
-      });
+  //     li.addEventListener("click", () => {
+  //       selectRecipient(u.id, u.username);
+  //     });
 
-      usersContainer.appendChild(li);
-    });
-  }
+  //     usersContainer.appendChild(li);
+  //   });
+  // }
 
   // =======================
   // SELECT FUNCTIONS
@@ -159,7 +157,8 @@ export function mount(params) {
       const res = await fetch("/api/start-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: id })
+        body: JSON.stringify({ user_id: id }),
+        credentials: "include",
       });
 
       const data = await res.json();
@@ -170,9 +169,10 @@ export function mount(params) {
     }
   }
 
+  //select conversation. means you load messages for a specific conversation id
   function selectConversation(convId, userId, name) {
     uiFlags.activeConversationId = String(convId);
-
+    messageOffset = 0; // Reset offset for new conversation
 
     chatState.currentConversation = convId;
     chatState.currentRecipient = String(userId);
@@ -187,10 +187,10 @@ export function mount(params) {
     if (selectedLi) selectedLi.classList.add("active");
 
     // clear notification badge for this user
-    const notifyLi = usersContainer.querySelector(
-      `.userContact[data-userid='${userId}']`
-    );
-    if (notifyLi) notifyLi.classList.remove("notify");
+    // const notifyLi = usersContainer.querySelector(
+    //   `.userContact[data-userid='${userId}']`
+    // );
+    // if (notifyLi) notifyLi.classList.remove("notify");
 
     const header = document.querySelector(".usercard p");
     if (header) header.textContent = `${name}`;
@@ -204,52 +204,111 @@ export function mount(params) {
   // =======================
   // MESSAGES
   // =======================
-  async function loadMessages(convId) {
+  let messageOffset = 0;
+  let isLoadingMessages = false;
+  const MESSAGES_PER_PAGE = 10;
+
+  // Debounce helper
+  function debounce(func, delay) {
+    let timeoutId;
+    return function (...args) {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => func(...args), delay);
+    };
+  }
+
+  // load the messages assuming you have the covnersation id
+  async function loadMessages(convId, offset = 0, append = false) {
+    if (isLoadingMessages) return;
+    isLoadingMessages = true;
+
     try {
-      const res = await fetch(`/api/messages?conversation_id=${convId}`);
+      const res = await fetch(
+        `/api/messages?conversation_id=${convId}&offset=${offset}&limit=${MESSAGES_PER_PAGE}`
+      );
       if (!res.ok) throw new Error("Failed to load messages");
 
-
       const messages = await res.json();
-      console.log("messages")
-      console.log(messages)
+      console.log("messages:", messages);
 
-      messages.forEach(msg => {
-        const direction = Number(msg.sender_id) === Number(chatState.currentRecipient) ? "from" : "to";
-        const bubble = createMessageElement(msg.content, direction, msg.timestamp || msg.created_at);
-        chat.appendChild(bubble);
-      });
+      // Handle null or undefined response
+      if (!messages || !Array.isArray(messages)) {
+        messages = [];
+      }
 
+      if (messages.length === 0) {
+        isLoadingMessages = false;
+        return;
+      }
 
-      chat.scrollTop = chat.scrollHeight;
+      if (append) {
+        // Prepend older messages to the top
+        // Messages come in DESC order, reverse to get ASC (oldest first)
+        const fragment = document.createDocumentFragment();
+        messages.reverse().forEach(msg => {
+          const direction = Number(msg.sender_id) === Number(chatState.currentRecipient) ? "from" : "to";
+          const bubble = createMessageElement(msg.content, direction, msg.timestamp || msg.created_at);
+          fragment.appendChild(bubble);
+        });
+        const firstChild = chat.firstChild;
+        if (firstChild) {
+          chat.insertBefore(fragment, firstChild);
+        } else {
+          chat.appendChild(fragment);
+        }
+      } else {
+        // Initial load - reverse DESC to ASC (oldest to newest)
+        chat.innerHTML = "";
+        messages.reverse().forEach(msg => {
+          const direction = Number(msg.sender_id) === Number(chatState.currentRecipient) ? "from" : "to";
+          const bubble = createMessageElement(msg.content, direction, msg.timestamp || msg.created_at);
+          chat.appendChild(bubble);
+        });
+        chat.scrollTop = chat.scrollHeight;
+      }
+
+      messageOffset += messages.length;
     } catch (err) {
       console.error("Load messages error:", err);
+    } finally {
+      isLoadingMessages = false;
     }
   }
+
+  // Debounced scroll handler for loading older messages
+  const handleChatScroll = debounce(() => {
+    // If scrolled to top, load older messages
+    if (chat.scrollTop === 0 && messageOffset > 0) {
+      console.log("Loading older messages...");
+      loadMessages(chatState.currentConversation, messageOffset, true);
+    }
+  }, 300);
+
+  chat.addEventListener("scroll", handleChatScroll);
 
   // =======================
   // SEARCH
   // =======================
-  search.addEventListener("input", e => {
-    const value = e.target.value.toLowerCase();
+  // search.addEventListener("input", e => {
+  //   const value = e.target.value.toLowerCase();
 
-    if (!value) {
-      renderConversations(allConversations);
-      return;
-    }
+  //   if (!value) {
+  //     renderConversations(allConversations);
+  //     return;
+  //   }
 
-    const filtered = allUsers.filter(u =>
-      u.username.toLowerCase().includes(value)
-    );
+  //   const filtered = allUsers.filter(u =>
+  //     u.username.toLowerCase().includes(value)
+  //   );
 
-    renderUsers(filtered);
-  });
+  //   renderUsers(filtered);
+  // });
 
   // =======================
   // WEBSOCKET
   // =======================
-  const proto = window.location.protocol === "https:" ? "wss" : "ws";
-  const url = `${proto}://${window.location.host}/ws/chat`;
+  // const proto = window.location.protocol === "https:" ? "wss" : "ws";
+  // const url = `${proto}://${window.location.host}/ws/chat`;
 
   ws = connectWS();
 
@@ -288,16 +347,30 @@ export function mount(params) {
   loadUsers();
   loadConversations();
 
+  if (params && params.uid) {
+    // Wait for users to load, then select the target user
+    setTimeout(() => {
+      const user = allUsers.find(x => x.id == params.uid);
+      console.log("Target user from params:", user);
+      console.log(params.uid)
+      if (user) {
+        selectRecipient(user.id, user.username);
+      }
+    }, 500);
+  }
+
   // =======================
   // CLEANUP
   // =======================
   return () => {
     uiFlags.chatOpen = false;
     uiFlags.activeConversationId = null;
+    uiFlags.targetUser = null;
     sendBtn.removeEventListener("click", onSend);
-    if (ws) {
-      ws.close(1000, "leaving chat");
-      ws = null;
-    }
+    chat.removeEventListener("scroll", handleChatScroll);
+    // if (ws) {
+    //   ws.close(1000, "leaving chat");
+    //   ws = null;
+    // }
   };
 }

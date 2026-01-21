@@ -1,3 +1,4 @@
+import { chatState } from './views/Chat.js'
 
 export const connectState = {
   allUsers: null,
@@ -7,6 +8,7 @@ export const connectState = {
 export const uiFlags = {
   chatOpen: false,
   activeConversationId: null,
+  targetUser: null,
 };
 
 
@@ -14,22 +16,60 @@ let ws = null;
 let allUsers = null;
 let lastUsersFetchTime = 0;
 const USER_FETCH_INTERVAL = 30000; // 30 seconds
+const TOAST_DURATION_MS = 4000;
+const TOAST_CONTAINER_ID = "chat-toast-container";
 //add reconnectors later
 
+function ensureToastContainer() {
+  let container = document.getElementById(TOAST_CONTAINER_ID);
+  if (container) return container;
+
+  container = document.createElement("div");
+  container.id = TOAST_CONTAINER_ID;
+  container.className = "chat-toast-container";
+  document.body.appendChild(container);
+  return container;
+}
+
+function showChatToast(text) {
+  const container = ensureToastContainer();
+  const toast = document.createElement("div");
+  toast.className = "chat-toast";
+  toast.textContent = text;
+
+  container.appendChild(toast);
+  requestAnimationFrame(() => {
+    toast.classList.add("visible");
+  });
+
+  setTimeout(() => {
+    toast.classList.remove("visible");
+    setTimeout(() => toast.remove(), 180);
+  }, TOAST_DURATION_MS);
+}
+
+function lookupUsername(userId) {
+  if (!connectState.allUsers) return null;
+  const user = connectState.allUsers.find(u => String(u.id) === String(userId));
+  return user ? user.username : null;
+}
+
 async function extractUsers() {
-  const res = await fetch("api/users", {
+  const res = await fetch("/api/users", {
     credentials: "include"
   })
+  console.log("extracting users")
 
   if (!res.ok) return false;
   const users = await res.json();
   connectState.allUsers = users;
+  console.log(users)
   lastUsersFetchTime = Date.now();
 }
 
 
 async function renderOnlineUsers(onlineUserIds) {
-
+  console.log("rendering online users")
   // Refetch if null or if 30 seconds have passed since last fetch
   if (connectState.allUsers == null || Date.now() - lastUsersFetchTime > USER_FETCH_INTERVAL) {
     await extractUsers();
@@ -81,9 +121,16 @@ async function renderOnlineUsers(onlineUserIds) {
         <span class="contactStatus online">●</span>
       `;
 
-    li.addEventListener("click", () => {
-      // selectRecipient(u.id, u.username);
-      console.log("online user is clicked, next time i should navigate")
+    li.addEventListener("click", async () => {
+      uiFlags.targetUser = { id: u.id, username: u.username };
+      try {
+        uiFlags.activeConversationId = u.id;
+        const { navigateTo } = await import("./router.js");
+        await navigateTo(`/chat/${u.id}`);
+      } catch (err) {
+        console.error("Failed to navigate to chat:", err);
+        window.location.href = "/chat";
+      }
     });
 
     container.appendChild(li);
@@ -102,9 +149,15 @@ async function renderOnlineUsers(onlineUserIds) {
         <span class="contactStatus offline">●</span>
       `;
 
-    li.addEventListener("click", () => {
-      // selectRecipient(u.id, u.username);
-      console.log("offline user is clicked, next time i should navigate")
+    li.addEventListener("click", async () => {
+      uiFlags.targetUser = { id: u.id, username: u.username };
+      try {
+        const { navigateTo } = await import("./router.js");
+        await navigateTo("/chat");
+      } catch (err) {
+        console.error("Failed to navigate to chat:", err);
+        window.location.href = "/chat";
+      }
     });
 
     container.appendChild(li);
@@ -131,6 +184,7 @@ export function connectWS() {
 
     try {
       const data = JSON.parse(e.data);
+      console.log("data", data)
 
       // Handle online_users broadcast
 
@@ -150,21 +204,21 @@ export function connectWS() {
             uiFlags.chatOpen &&
             chatEl &&
             uiFlags.activeConversationId === convId;
+          console.log("canrender in chat", canRenderInChat)
+          console.log("ui flag is open", uiFlags.chatOpen)
+          console.log("chatelement exists in chat", chatEl)
+          console.log("conversationid matching", uiFlags.activeConversationId === convId)
+          console.log("convid", convId)
+          console.log("active convid", uiFlags.activeConversationId)
 
           if (canRenderInChat) {
-            // quick bubble (keep it simple)
-            const div = document.createElement("div");
-            div.classList.add("message", "from");
-            div.textContent = data.content;
-            chatEl.appendChild(div);
+            const direction = Number(data.sender_id) === Number(chatState.currentRecipient) ? "from" : "to";
+            const bubble = createMessageElement(data.content, direction, data.timestamp || data.created_at);
+            chatEl.appendChild(bubble);
             chatEl.scrollTop = chatEl.scrollHeight;
           } else {
-            // ping in global list (or conversation list)
-            const li = document.querySelector(
-              `.userContact[data-userid='${senderId}']`
-            );
-            console.log("li found", li)
-            if (li) li.classList.add("notify");
+            const senderName = lookupUsername(senderId) || "Someone";
+            showChatToast(`${senderName} sent you a message. Open chat to view.`);
           }
           break;
       }
@@ -189,4 +243,28 @@ export function closeWS(reason = "logout") {
     ws.close(1000, reason);
   }
   ws = null;
+}
+
+//redundant type shi but letts keep it here for now----------------------------------------
+function createMessageElement(content, direction, timestamp) {
+  const div = document.createElement("div");
+  div.classList.add("message", direction);
+
+  const text = document.createElement("div");
+  text.className = "message-text";
+  text.textContent = content;
+
+  const time = document.createElement("div");
+  time.className = "message-time";
+  time.textContent = formatTimestamp(timestamp);
+
+  div.appendChild(text);
+  div.appendChild(time);
+  return div;
+}
+
+function formatTimestamp(ts) {
+  if (!ts) return "";
+  const d = new Date(ts);
+  return isNaN(d) ? ts : d.toLocaleString();
 }

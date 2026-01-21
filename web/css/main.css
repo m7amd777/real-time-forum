@@ -1,2 +1,33 @@
 /* main.css */
 /* Main styles here */
+
+/* Chat toast notifications */
+.chat-toast-container {
+	position: fixed;
+	bottom: 24px;
+	right: 24px;
+	display: flex;
+	flex-direction: column;
+	gap: 8px;
+	z-index: 9999;
+	pointer-events: none;
+}
+
+.chat-toast {
+	background: #1f2937;
+	color: #f9fafb;
+	padding: 10px 14px;
+	border-radius: 8px;
+	box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+	font-size: 14px;
+	font-weight: 600;
+	opacity: 0;
+	transform: translateY(6px);
+	transition: opacity 150ms ease, transform 150ms ease;
+	pointer-events: auto;
+}
+
+.chat-toast.visible {
+	opacity: 1;
+	transform: translateY(0);
+}

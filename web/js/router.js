@@ -8,6 +8,7 @@ let activePath = null;
 const routes = [
     { path: "/", view: () => import("./views/Home.js"), protected: true },
     { path: "/posts", view: () => import("./views/Home.js"), protected: true },
+    { path: "/chat/:uid", view: () => import("./views/Chat.js"), protected: true },
     { path: "/chat", view: () => import("./views/Chat.js"), protected: true },
     { path: "/thread", view: () => import("./views/Thread.js"), protected: true },
     { path: "/create", view: () => import("./views/Create.js"), protected: true },
@@ -207,6 +208,8 @@ export async function router() {
     const app = document.querySelector("#mainarea")
 
     let params = getParams(match)
+
+    console.log("router params", params)
     app.innerHTML = await view(params)
 
 
