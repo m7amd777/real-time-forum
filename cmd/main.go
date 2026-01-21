@@ -15,7 +15,7 @@ func main() {
 	// Entry point for the server
 	database.InitDB()
 	//./ is working anyways
-	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("web/"))))
+	http.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("../web/"))))
 
 	http.HandleFunc("/", homeHandler)
 
@@ -46,7 +46,7 @@ func main() {
 
 func homeHandler(w http.ResponseWriter, r *http.Request) {
 	// Parse template file
-	tmpl, err := template.ParseFiles("web/index.html")
+	tmpl, err := template.ParseFiles("../web/index.html")
 	if err != nil {
 		fmt.Println(err)
 		http.Error(w, "Error loading template", http.StatusInternalServerError)

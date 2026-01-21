@@ -161,13 +161,13 @@ function unrenderSideBar() {
     side.style.display = "none";
 }
 
-function unrenderTrackingList(){
+function unrenderTrackingList() {
     let list = document.getElementById("aa")
     if (list) list.style.display = "none";
 }
 
 
-function renderTrackingList(){
+function renderTrackingList() {
     let list = document.getElementById("aa")
     if (list) list.style.display = "";
 }
@@ -182,9 +182,9 @@ export async function router() {
 
 
 
-   if (!match) {
-    return renderError({code : 404, message: "Page Not Found"});
-}
+    if (!match) {
+        return renderError({code : 404, message: "Page Not Found"});
+    }
 
     if (match.route.protected) {
 
@@ -229,7 +229,7 @@ export async function router() {
 
     //putting the app and calling the function using the params we need
 
-    if (match.route.layout && isAuth) {
+    if (isAuth) {
         renderLayout();
     } else {
         unrenderLayout();
