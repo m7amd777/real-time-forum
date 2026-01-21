@@ -7,11 +7,12 @@ let activePath = null;
 
 // added a layout flag that allows us to mark which views have the layout and which dont 
 const routes = [
-    { path: "/", view: () => import("./views/Home.js"), protected: true, layout: true },
-    { path: "/posts", view: () => import("./views/Home.js"), protected: true, layout: true },
-    { path: "/chat", view: () => import("./views/Chat.js"), protected: true, layout: true },
-    { path: "/thread", view: () => import("./views/Thread.js"), protected: true, layout: true },
-    { path: "/create", view: () => import("./views/Create.js"), protected: true, layout: true },
+    { path: "/", view: () => import("./views/Home.js"), protected: true },
+    { path: "/posts", view: () => import("./views/Home.js"), protected: true },
+    { path: "/chat/:uid", view: () => import("./views/Chat.js"), protected: true },
+    { path: "/chat", view: () => import("./views/Chat.js"), protected: true },
+    { path: "/thread", view: () => import("./views/Thread.js"), protected: true },
+    { path: "/create", view: () => import("./views/Create.js"), protected: true },
 
     { path: "/login", view: () => import("./views/Login.js"), layout: false },
     { path: "/register", view: () => import("./views/Register.js"), layout: false },

@@ -1,25 +1,172 @@
+import { chatState } from './views/Chat.js'
+
+export const connectState = {
+  allUsers: null,
+  onlineUsers: null,
+}
+
+export const uiFlags = {
+  chatOpen: false,
+  activeConversationId: null,
+  targetUser: null,
+};
+
+
 let ws = null;
+let allUsers = null;
+let lastUsersFetchTime = 0;
+const USER_FETCH_INTERVAL = 30000; // 30 seconds
+const TOAST_DURATION_MS = 4000;
+const TOAST_CONTAINER_ID = "chat-toast-container";
 //add reconnectors later
 
-function renderOnlineUsers(users) {
-  const container = document.getElementById("aa");
+function ensureToastContainer() {
+  let container = document.getElementById(TOAST_CONTAINER_ID);
+  if (container) return container;
+
+  container = document.createElement("div");
+  container.id = TOAST_CONTAINER_ID;
+  container.className = "chat-toast-container";
+  document.body.appendChild(container);
+  return container;
+}
+
+function showChatToast(text) {
+  const container = ensureToastContainer();
+  const toast = document.createElement("div");
+  toast.className = "chat-toast";
+  toast.textContent = text;
+
+  container.appendChild(toast);
+  requestAnimationFrame(() => {
+    toast.classList.add("visible");
+  });
+
+  setTimeout(() => {
+    toast.classList.remove("visible");
+    setTimeout(() => toast.remove(), 180);
+  }, TOAST_DURATION_MS);
+}
+
+function lookupUsername(userId) {
+  if (!connectState.allUsers) return null;
+  const user = connectState.allUsers.find(u => String(u.id) === String(userId));
+  return user ? user.username : null;
+}
+
+let allConversations = [];
+
+async function extractUsers() {
+  const res = await fetch("/api/users", {
+    credentials: "include"
+  })
+  console.log("extracting users")
+
+  if (!res.ok) return false;
+  const users = await res.json();
+  connectState.allUsers = users;
+  console.log(users)
+  lastUsersFetchTime = Date.now();
+}
+
+async function extractConversations() {
+  try {
+    const res = await fetch("/api/conversations", {
+      credentials: "include"
+    });
+    if (!res.ok) return [];
+    allConversations = await res.json();
+    return allConversations;
+  } catch (err) {
+    console.error("Failed to fetch conversations:", err);
+    return [];
+  }
+}
+
+async function renderOnlineUsers(onlineUserIds) {
+  console.log("rendering online users")
+  // Refetch if null or if 30 seconds have passed since last fetch
+  if (connectState.allUsers == null || Date.now() - lastUsersFetchTime > USER_FETCH_INTERVAL) {
+    await extractUsers();
+  }
+
+  // Always fetch conversations for ordering
+  await extractConversations();
+
+  const container = document.getElementById("globalOnlineUsers");
+  const count = document.getElementById("onlineCount");
   if (!container) {
     console.warn("[ws] globalOnlineUsers element not found");
     return;
   }
 
-  if (!users || users.length === 0) {
-    container.innerHTML = "<p>No users online</p>";
-    return;
-  }
+  // Create a map of user_id -> conversation (for users with conversations)
+  const conversationMap = new Map();
+  allConversations.forEach(conv => {
+    conversationMap.set(conv.user_id, conv);
+  });
 
-  const usersList = users.map(userID => `<li>User ${userID}</li>`).join("");
-  container.innerHTML = `
-      <h3>Online Users (${users.length})</h3>
-      <li class="usersContact">
-        ${usersList}
-      </ul>
-  `;
+  // Separate users into three categories
+  const usersWithConversations = [];
+  const usersWithoutConversations = [];
+
+  connectState.allUsers.forEach(user => {
+    if (conversationMap.has(user.id)) {
+      usersWithConversations.push({
+        ...user,
+        conversation: conversationMap.get(user.id)
+      });
+    } else {
+      usersWithoutConversations.push(user);
+    }
+  });
+
+  // Sort users with conversations by updated_at (already ordered from backend, but ensure)
+  usersWithConversations.sort((a, b) => {
+    const timeA = new Date(a.conversation.updated_at || 0);
+    const timeB = new Date(b.conversation.updated_at || 0);
+    return timeB - timeA; // DESC (most recent first)
+  });
+
+  // Sort users without conversations alphabetically
+  usersWithoutConversations.sort((a, b) =>
+    a.username.localeCompare(b.username)
+  );
+
+  // Combine: conversations first, then alphabetical
+  const sortedUsers = [...usersWithConversations, ...usersWithoutConversations];
+
+  // Render
+  container.innerHTML = "";
+
+  sortedUsers.forEach(u => {
+    const isOnline = onlineUserIds.includes(u.id);
+    const li = document.createElement("li");
+    li.className = "userContact";
+    li.dataset.userid = u.id;
+
+    li.innerHTML = `
+        <span class="contactUsername">${u.username}</span>
+        <span class="contactStatus ${isOnline ? 'online' : 'offline'}">●</span>
+      `;
+
+    li.addEventListener("click", async () => {
+      uiFlags.targetUser = { id: u.id, username: u.username };
+      try {
+        uiFlags.activeConversationId = u.id;
+        const { navigateTo } = await import("./router.js");
+        await navigateTo(`/chat/${u.id}`);
+      } catch (err) {
+        console.error("Failed to navigate to chat:", err);
+        window.location.href = "/chat";
+      }
+    });
+
+    container.appendChild(li);
+  });
+
+  const onlineCount = sortedUsers.filter(u => onlineUserIds.includes(u.id)).length;
+  count.innerHTML = `Online Users (${onlineCount})`;
 }
 
 export function connectWS() {
@@ -38,12 +185,50 @@ export function connectWS() {
 
     try {
       const data = JSON.parse(e.data);
+      console.log("data", data)
 
       // Handle online_users broadcast
-      if (data.type === "online_users") {
-        console.log("[ws] online users update:", data.online_users);
-        renderOnlineUsers(data.online_users);
+
+      switch (data.type) {
+        case "online_users":
+          console.log("[ws] online users update:", data.online_users);
+          connectState.onlineUsers = data.online_users;
+          renderOnlineUsers(data.online_users);
+          break
+        case "message":
+          const chatEl = document.getElementById("chatsection");
+
+          const convId = String(data.conversation_id);
+          const senderId = String(data.sender_id);
+
+          const canRenderInChat =
+            uiFlags.chatOpen &&
+            chatEl &&
+            uiFlags.activeConversationId === convId;
+          console.log("canrender in chat", canRenderInChat)
+          console.log("ui flag is open", uiFlags.chatOpen)
+          console.log("chatelement exists in chat", chatEl)
+          console.log("conversationid matching", uiFlags.activeConversationId === convId)
+          console.log("convid", convId)
+          console.log("active convid", uiFlags.activeConversationId)
+
+          if (canRenderInChat) {
+            const direction = Number(data.sender_id) === Number(chatState.currentRecipient) ? "from" : "to";
+            const bubble = createMessageElement(data.content, direction, data.timestamp || data.created_at);
+            chatEl.appendChild(bubble);
+            chatEl.scrollTop = chatEl.scrollHeight;
+          } else {
+            const senderName = lookupUsername(senderId) || "Someone";
+            showChatToast(`${senderName} sent you a message. Open chat to view.`);
+          }
+
+          // Re-render user list to move this conversation to top
+          if (connectState.onlineUsers) {
+            renderOnlineUsers(connectState.onlineUsers);
+          }
+          break;
       }
+
     } catch (err) {
       console.error("[ws] failed to parse message:", err);
     }
@@ -64,4 +249,28 @@ export function closeWS(reason = "logout") {
     ws.close(1000, reason);
   }
   ws = null;
+}
+
+//redundant type shi but letts keep it here for now----------------------------------------
+function createMessageElement(content, direction, timestamp) {
+  const div = document.createElement("div");
+  div.classList.add("message", direction);
+
+  const text = document.createElement("div");
+  text.className = "message-text";
+  text.textContent = content;
+
+  const time = document.createElement("div");
+  time.className = "message-time";
+  time.textContent = formatTimestamp(timestamp);
+
+  div.appendChild(text);
+  div.appendChild(time);
+  return div;
+}
+
+function formatTimestamp(ts) {
+  if (!ts) return "";
+  const d = new Date(ts);
+  return isNaN(d) ? ts : d.toLocaleString();
 }

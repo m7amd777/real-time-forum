@@ -22,13 +22,14 @@ func InsertMessage(conversationID int, senderID int, content string) error {
 	return nil
 }
 
-// temp, we need to get 10 messages
-func GetAllMessages(conversationID int) ([]models.MessageItem, error) {
+// Get messages with pagination support
+func GetAllMessages(conversationID int, offset int, limit int) ([]models.MessageItem, error) {
 	rows, err := database.DB.Query(
 		`SELECT m.id, m.conversation_id, m.sender_id, m.content, m.created_at, m.read_at
 		FROM messages m
 		WHERE m.conversation_id = ?
-		ORDER BY m.created_at ASC`, conversationID)
+		ORDER BY m.created_at DESC
+		LIMIT ? OFFSET ?`, conversationID, limit, offset)
 
 	if err != nil {
 		return nil, fmt.Errorf("query failed: %w", err)
@@ -62,6 +63,11 @@ func GetAllMessages(conversationID int) ([]models.MessageItem, error) {
 
 	if err = rows.Err(); err != nil {
 		return nil, fmt.Errorf("error iterating rows: %w", err)
+	}
+
+	// Return empty slice instead of nil to avoid null in JSON
+	if messages == nil {
+		messages = []models.MessageItem{}
 	}
 
 	return messages, nil

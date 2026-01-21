@@ -1,23 +1,17 @@
+import { connectState, connectWS, uiFlags } from '../ws.js';
+
 // views/Chat.js
 let ws = null;
 let allUsers = [];
 let allConversations = [];
-let currentRecipient = null;
-let currentConversation = null;
+export const chatState = {
+  currentRecipient: null,
+  currentConversation: null,
+};
 
-export default async function ChatView() {
+export default async function ChatView(params) {
   return `
     <div class="chatarea">
-      <div class="usersList">
-        <input 
-          type="text" 
-          id="userSearch" 
-          placeholder="Search users..." 
-          class="userSearch"
-        />
-        <ul id="usersContainer"></ul>
-      </div>
-
       <div class="chatspace">
         <div class="usercard">
           <p>Select a user</p>
@@ -35,11 +29,15 @@ export default async function ChatView() {
 }
 
 export function mount(params) {
-  const usersContainer = document.getElementById("usersContainer");
+  console.log("params that are being used", params)
+  uiFlags.chatOpen = true;
+
+
+  // const usersContainer = document.getElementById("usersContainer");
   const chat = document.getElementById("chatsection");
   const sendBtn = document.getElementById("sendBtn");
   const entry = document.getElementById("entry");
-  const search = document.getElementById("userSearch");
+  // const search = document.getElementById("userSearch");
 
   // =======================
   // LOAD DATA
@@ -53,63 +51,50 @@ export function mount(params) {
     }
   }
 
+
+  //load the conversations that are available
   async function loadConversations() {
     try {
       const res = await fetch("/api/conversations");
       if (!res.ok) throw new Error("Failed to fetch conversations");
 
       allConversations = await res.json();
-      renderConversations(allConversations);
+      // renderConversations(allConversations);
+
+      // If user clicked from global list, auto-open chat with them
+      if (uiFlags.targetUser) {
+        const { id, username } = uiFlags.targetUser;
+        uiFlags.targetUser = null;
+        selectRecipient(id, username);
+      }
     } catch (err) {
       console.error("Load conversations error:", err);
     }
   }
 
-  // =======================
-  // RENDER FUNCTIONS
-  // =======================
-  function renderConversations(convs) {
-    usersContainer.innerHTML = "";
-
-    convs.forEach(c => {
-      const li = document.createElement("li");
-      li.className = "userContact";
-      li.dataset.conversationid = c.id;
-      li.dataset.userid = c.user_id;
-
-      li.innerHTML = `
-        <span class="contactUsername">${c.username}</span>
-        <span class="contactStatus online">●</span>
-      `;
-
-      li.addEventListener("click", () => {
-        selectConversation(c.id, c.user_id, c.username);
-      });
-
-      usersContainer.appendChild(li);
-    });
+  function formatTimestamp(ts) {
+    if (!ts) return "";
+    const d = new Date(ts);
+    return isNaN(d) ? ts : d.toLocaleString();
   }
 
-  function renderUsers(users) {
-    usersContainer.innerHTML = "";
+  function createMessageElement(content, direction, timestamp) {
+    const div = document.createElement("div");
+    div.classList.add("message", direction);
 
-    users.forEach(u => {
-      const li = document.createElement("li");
-      li.className = "userContact";
-      li.dataset.userid = u.id;
+    const text = document.createElement("div");
+    text.className = "message-text";
+    text.textContent = content;
 
-      li.innerHTML = `
-        <span class="contactUsername">${u.username}</span>
-        <span class="contactStatus online">●</span>
-      `;
+    const time = document.createElement("div");
+    time.className = "message-time";
+    time.textContent = formatTimestamp(timestamp);
 
-      li.addEventListener("click", () => {
-        selectRecipient(u.id, u.username);
-      });
-
-      usersContainer.appendChild(li);
-    });
+    div.appendChild(text);
+    div.appendChild(time);
+    return div;
   }
+
 
   // =======================
   // SELECT FUNCTIONS
@@ -120,7 +105,8 @@ export function mount(params) {
       const res = await fetch("/api/start-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: id })
+        body: JSON.stringify({ user_id: id }),
+        credentials: "include",
       });
 
       const data = await res.json();
@@ -131,9 +117,13 @@ export function mount(params) {
     }
   }
 
+  //select conversation. means you load messages for a specific conversation id
   function selectConversation(convId, userId, name) {
-    currentConversation = convId;
-    currentRecipient = String(userId);
+    uiFlags.activeConversationId = String(convId);
+    messageOffset = 0; // Reset offset for new conversation
+
+    chatState.currentConversation = convId;
+    chatState.currentRecipient = String(userId);
 
     document.querySelectorAll(".userContact").forEach(li =>
       li.classList.remove("active")
@@ -145,88 +135,104 @@ export function mount(params) {
     if (selectedLi) selectedLi.classList.add("active");
 
     const header = document.querySelector(".usercard p");
-    if (header) header.textContent = `${name} - active`;
+    if (header) header.textContent = `${name}`;
 
     chat.innerHTML = "";
     loadMessages(convId);
 
-    console.log("Conversation selected:", currentConversation, currentRecipient);
+    console.log("Conversation selected:", chatState.currentConversation, chatState.currentRecipient);
   }
 
   // =======================
   // MESSAGES
   // =======================
-  async function loadMessages(convId) {
+  let messageOffset = 0;
+  let isLoadingMessages = false;
+  const MESSAGES_PER_PAGE = 10;
+
+  // Debounce helper
+  function debounce(func, delay) {
+    let timeoutId;
+    return function (...args) {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => func(...args), delay);
+    };
+  }
+
+  // load the messages assuming you have the covnersation id
+  async function loadMessages(convId, offset = 0, append = false) {
+    if (isLoadingMessages) return;
+    isLoadingMessages = true;
+
     try {
-      const res = await fetch(`/api/messages?conversation_id=${convId}`);
+      const res = await fetch(
+        `/api/messages?conversation_id=${convId}&offset=${offset}&limit=${MESSAGES_PER_PAGE}`
+      );
       if (!res.ok) throw new Error("Failed to load messages");
 
-
       const messages = await res.json();
-      console.log("messages")
-      console.log(messages)
+      console.log("messages:", messages);
 
-      messages.forEach(msg => {
-        const div = document.createElement("div");
-        div.classList.add("message");
-        div.classList.add(Number(msg.sender_id) === Number(currentRecipient) ? "from" : "to");
-        div.textContent = msg.content;
-        chat.appendChild(div);
-      });
+      // Handle null or undefined response
+      if (!messages || !Array.isArray(messages)) {
+        messages = [];
+      }
 
+      if (messages.length === 0) {
+        isLoadingMessages = false;
+        return;
+      }
 
-      chat.scrollTop = chat.scrollHeight;
+      if (append) {
+        // Prepend older messages to the top
+        // Messages come in DESC order, reverse to get ASC (oldest first)
+        const fragment = document.createDocumentFragment();
+        messages.reverse().forEach(msg => {
+          const direction = Number(msg.sender_id) === Number(chatState.currentRecipient) ? "from" : "to";
+          const bubble = createMessageElement(msg.content, direction, msg.timestamp || msg.created_at);
+          fragment.appendChild(bubble);
+        });
+        const firstChild = chat.firstChild;
+        if (firstChild) {
+          chat.insertBefore(fragment, firstChild);
+        } else {
+          chat.appendChild(fragment);
+        }
+      } else {
+        // Initial load - reverse DESC to ASC (oldest to newest)
+        chat.innerHTML = "";
+        messages.reverse().forEach(msg => {
+          const direction = Number(msg.sender_id) === Number(chatState.currentRecipient) ? "from" : "to";
+          const bubble = createMessageElement(msg.content, direction, msg.timestamp || msg.created_at);
+          chat.appendChild(bubble);
+        });
+        chat.scrollTop = chat.scrollHeight;
+      }
+
+      messageOffset += messages.length;
     } catch (err) {
       console.error("Load messages error:", err);
+    } finally {
+      isLoadingMessages = false;
     }
   }
 
-  // =======================
-  // SEARCH
-  // =======================
-  search.addEventListener("input", e => {
-    const value = e.target.value.toLowerCase();
-
-    if (!value) {
-      renderConversations(allConversations);
-      return;
+  // Debounced scroll handler for loading older messages
+  const handleChatScroll = debounce(() => {
+    // If scrolled to top, load older messages
+    if (chat.scrollTop === 0 && messageOffset > 0) {
+      console.log("Loading older messages...");
+      loadMessages(chatState.currentConversation, messageOffset, true);
     }
+  }, 300);
+  chat.addEventListener("scroll", handleChatScroll);
 
-    const filtered = allUsers.filter(u =>
-      u.username.toLowerCase().includes(value)
-    );
 
-    renderUsers(filtered);
-  });
 
-  // =======================
-  // WEBSOCKET
-  // =======================
-  const proto = window.location.protocol === "https:" ? "wss" : "ws";
-  const url = `${proto}://${window.location.host}/ws/chat`;
 
-  ws = new WebSocket(url);
+  //opening WS function
+  ws = connectWS();
 
-  ws.onopen = () => console.log("WS connected");
-  ws.onclose = () => console.log("WS closed");
-  ws.onerror = e => console.error("WS error:", e);
-
-  ws.onmessage = event => {
-    try {
-      const msg = JSON.parse(event.data);
-
-      if (msg.type === "message") {
-        const div = document.createElement("div");
-        div.classList.add("message");
-        div.classList.add(Number(msg.sender_id) === Number(currentRecipient) ? "from" : "to");
-        div.textContent = msg.content;
-        chat.appendChild(div);
-        chat.scrollTop = chat.scrollHeight;
-      }
-    } catch (e) {
-      console.error("Parse error:", e);
-    }
-  };
 
   // =======================
   // SEND MESSAGE
@@ -235,12 +241,12 @@ export function mount(params) {
     const text = entry.value.trim();
     if (!text) return;
     if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    if (!currentRecipient) return alert("Select a user first");
+    if (!chatState.currentRecipient) return alert("Select a user first");
 
     const message = {
       type: "message",
-      conversation_id: currentConversation,
-      recipient_id: Number(currentRecipient),
+      conversation_id: chatState.currentConversation,
+      recipient_id: Number(chatState.currentRecipient),
       content: text,
       temp_id: Date.now().toString()
     };
@@ -249,10 +255,8 @@ export function mount(params) {
     entry.value = "";
 
     // locally add bubble immediately
-    const div = document.createElement("div");
-    div.classList.add("message", "to");
-    div.textContent = text;
-    chat.appendChild(div);
+    const bubble = createMessageElement(text, "to", new Date().toISOString());
+    chat.appendChild(bubble);
     chat.scrollTop = chat.scrollHeight;
   };
 
@@ -264,14 +268,30 @@ export function mount(params) {
   loadUsers();
   loadConversations();
 
+  if (params && params.uid) {
+    // Wait for users to load, then select the target user
+    setTimeout(() => {
+      const user = allUsers.find(x => x.id == params.uid);
+      console.log("Target user from params:", user);
+      console.log(params.uid)
+      if (user) {
+        selectRecipient(user.id, user.username);
+      }
+    }, 500);
+  }
+
   // =======================
   // CLEANUP
   // =======================
   return () => {
+    uiFlags.chatOpen = false;
+    uiFlags.activeConversationId = null;
+    uiFlags.targetUser = null;
     sendBtn.removeEventListener("click", onSend);
-    if (ws) {
-      ws.close(1000, "leaving chat");
-      ws = null;
-    }
+    chat.removeEventListener("scroll", handleChatScroll);
+    // if (ws) {
+    //   ws.close(1000, "leaving chat");
+    //   ws = null;
+    // }
   };
 }

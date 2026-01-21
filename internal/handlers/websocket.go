@@ -36,15 +36,18 @@ type ClientEvent struct {
 	Conversation_id int    `json:"conversation_id"`
 	Recipient_id    int    `json:"recipient_id"`
 	Content         string `json:"content"`
+	TimeStamp       string `json:"time"`
 }
 
 // this has to change definitely
 type ServerEvent struct {
-	Type        string  `json:"type"`
-	SenderID    int     `json:"sender_id"`
-	RecipientID int     `json:"recipient_id"`
-	Content     string  `json:"content"`
-	OnlineUsers []int64 `json:"online_users,omitempty"`
+	Type           string  `json:"type"`
+	SenderID       int     `json:"sender_id"`
+	RecipientID    int     `json:"recipient_id"`
+	ConversationID int     `json:"conversation_id"`
+	Content        string  `json:"content"`
+	Timestamp      string  `json:"timestamp,omitempty"`
+	OnlineUsers    []int64 `json:"online_users,omitempty"`
 }
 
 func newChatHub() *chatHub {
@@ -241,10 +244,12 @@ func (c *ChatClient) handleMessage(msg ClientEvent) {
 	if ok {
 		// recipient is offline, just save to database
 		rc.sendEvent(ServerEvent{
-			Type:        "message",
-			SenderID:    c.id,
-			RecipientID: msg.Recipient_id,
-			Content:     msg.Content,
+			Type:           "message",
+			SenderID:       c.id,
+			RecipientID:    msg.Recipient_id,
+			ConversationID: msg.Conversation_id,
+			Content:        msg.Content,
+			Timestamp:      time.Now().UTC().Format(time.RFC3339),
 		})
 	}
 
