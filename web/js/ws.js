@@ -3,6 +3,13 @@ export const connectState = {
   allUsers: null,
   onlineUsers: null,
 }
+
+export const uiFlags = {
+  chatOpen: false,
+  activeConversationId: null,
+};
+
+
 let ws = null;
 let allUsers = null;
 let lastUsersFetchTime = 0;
@@ -19,7 +26,6 @@ async function extractUsers() {
   connectState.allUsers = users;
   lastUsersFetchTime = Date.now();
 }
-
 
 
 async function renderOnlineUsers(onlineUserIds) {
@@ -39,7 +45,8 @@ async function renderOnlineUsers(onlineUserIds) {
   // Separate users into online and offline arrays
   const onlineUsers = [];
   const offlineUsers = [];
-
+  console.log(onlineUsers, "onlineUsers")
+  console.log(offlineUsers, "offlineUsers")
   connectState.allUsers.forEach(user => {
     if (onlineUserIds.includes(user.id)) {
       onlineUsers.push(user);
@@ -53,28 +60,55 @@ async function renderOnlineUsers(onlineUserIds) {
     return;
   }
 
-  // Render online users
-  const onlineUsersList = onlineUsers.map(user => `
-        <li class="userContact">
-        <span class="contactUsername">${user.username}</span>
+  const heading1 = document.createElement("h3");
+  const heading2 = document.createElement("h3");
+  heading1.id = "headingma";
+  heading2.id = "headingma";
+  heading1.textContent = "Online";
+  heading2.textContent = "Offline";
+
+  //online users----------------------------
+  container.innerHTML = "";
+  container.appendChild(heading1);
+
+  onlineUsers.forEach(u => {
+    const li = document.createElement("li");
+    li.className = "userContact";
+    li.dataset.userid = u.id;
+
+    li.innerHTML = `
+        <span class="contactUsername">${u.username}</span>
         <span class="contactStatus online">●</span>
-        </li>
-      `).join("");
+      `;
 
-  // Render offline users
-  const offlineUsersList = offlineUsers.map(user => `
-        <li class="userContact">
-        <span class="contactUsername">${user.username}</span>
+    li.addEventListener("click", () => {
+      // selectRecipient(u.id, u.username);
+      console.log("online user is clicked, next time i should navigate")
+    });
+
+    container.appendChild(li);
+  });
+
+  //offline users------------------------------------------------------------
+  container.appendChild(heading2);
+
+  offlineUsers.forEach(u => {
+    const li = document.createElement("li");
+    li.className = "userContact";
+    li.dataset.userid = u.id;
+
+    li.innerHTML = `
+        <span class="contactUsername">${u.username}</span>
         <span class="contactStatus offline">●</span>
-        </li>
-      `).join("");
+      `;
 
-  container.innerHTML = `
-        <h3 id="headingma">Online</h3>
-        <ul id = "globalOnlineUsers">${onlineUsersList}</ul>
-        <h3 id="headingma">Offline</h3>
-        <ul id = "globalOnlineUsers">${offlineUsersList}</ul>
-  `;
+    li.addEventListener("click", () => {
+      // selectRecipient(u.id, u.username);
+      console.log("offline user is clicked, next time i should navigate")
+    });
+
+    container.appendChild(li);
+  });
 
   count.innerHTML = `
     Online Users (${onlineUsers.length})
@@ -106,19 +140,33 @@ export function connectWS() {
           connectState.onlineUsers = data.online_users;
           renderOnlineUsers(data.online_users);
           break
-        case "this is just a test":
-          const chat = document.getElementById("chatsection")
-          if (chat != null) {
-            const div = document.createElement("div");
-            div.classList.add("message");
-            div.classList.add(Number(msg.sender_id) === Number(currentRecipient) ? "from" : "to");
-            div.textContent = msg.content;
-            chat.appendChild(div);
-            chat.scrollTop = chat.scrollHeight;
-          } else {
+        case "message":
+          const chatEl = document.getElementById("chatsection");
 
+          const convId = String(data.conversation_id);
+          const senderId = String(data.sender_id);
+
+          const canRenderInChat =
+            uiFlags.chatOpen &&
+            chatEl &&
+            uiFlags.activeConversationId === convId;
+
+          if (canRenderInChat) {
+            // quick bubble (keep it simple)
+            const div = document.createElement("div");
+            div.classList.add("message", "from");
+            div.textContent = data.content;
+            chatEl.appendChild(div);
+            chatEl.scrollTop = chatEl.scrollHeight;
+          } else {
+            // ping in global list (or conversation list)
+            const li = document.querySelector(
+              `.userContact[data-userid='${senderId}']`
+            );
+            console.log("li found", li)
+            if (li) li.classList.add("notify");
           }
-          break
+          break;
       }
 
     } catch (err) {

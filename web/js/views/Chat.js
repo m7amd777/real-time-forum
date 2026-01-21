@@ -1,4 +1,4 @@
-import { connectState } from '../ws.js';
+import { connectState, connectWS, uiFlags } from '../ws.js';
 
 // views/Chat.js
 let ws = null;
@@ -39,6 +39,10 @@ export default async function ChatView() {
 }
 
 export function mount(params) {
+
+  uiFlags.chatOpen = true;
+
+
   const usersContainer = document.getElementById("usersContainer");
   const chat = document.getElementById("chatsection");
   const sendBtn = document.getElementById("sendBtn");
@@ -167,6 +171,9 @@ export function mount(params) {
   }
 
   function selectConversation(convId, userId, name) {
+    uiFlags.activeConversationId = String(convId);
+
+
     chatState.currentConversation = convId;
     chatState.currentRecipient = String(userId);
 
@@ -244,33 +251,8 @@ export function mount(params) {
   const proto = window.location.protocol === "https:" ? "wss" : "ws";
   const url = `${proto}://${window.location.host}/ws/chat`;
 
-  ws = new WebSocket(url);
+  ws = connectWS();
 
-  ws.onopen = () => console.log("WS connected");
-  ws.onclose = () => console.log("WS closed");
-  ws.onerror = e => console.error("WS error:", e);
-
-  ws.onmessage = event => {
-    try {
-      const msg = JSON.parse(event.data);
-
-      if (msg.type === "message") {
-        const senderId = String(msg.sender_id);
-        const isActive = chatState.currentRecipient && senderId === chatState.currentRecipient;
-
-        if (isActive) {
-          const direction = Number(msg.sender_id) === Number(chatState.currentRecipient) ? "from" : "to";
-          const bubble = createMessageElement(msg.content, direction, msg.timestamp || msg.created_at);
-          chat.appendChild(bubble);
-          chat.scrollTop = chat.scrollHeight;
-        } else {
-          notifyUser(senderId);
-        }
-      }
-    } catch (e) {
-      console.error("Parse error:", e);
-    }
-  };
 
   // =======================
   // SEND MESSAGE
@@ -310,6 +292,8 @@ export function mount(params) {
   // CLEANUP
   // =======================
   return () => {
+    uiFlags.chatOpen = false;
+    uiFlags.activeConversationId = null;
     sendBtn.removeEventListener("click", onSend);
     if (ws) {
       ws.close(1000, "leaving chat");
