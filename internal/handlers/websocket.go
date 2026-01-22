@@ -260,7 +260,7 @@ func (c *ChatClient) handleMessage(msg ClientEvent) {
 		Timestamp:      time.Now().UTC().Format(time.RFC3339),
 	})
 
-	err := queries.InsertMessage(1, c.id, msg.Content)
+	err := queries.InsertMessage(msg.Conversation_id, c.id, msg.Content)
 	if err != nil {
 		fmt.Println("error while inserting messsage in handleMessage", err)
 	}
