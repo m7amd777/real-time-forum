@@ -55,11 +55,11 @@ func EmailExists(email string) (bool, error) {
 	return true, nil
 }
 
-func CreateUser(username, email, password string, age int , gender  string , firstname string , lastname string) error {
+func CreateUser(username, email, password string, age int, gender string, firstname string, lastname string) error {
 	_, err := database.DB.Exec(`
 		INSERT INTO users (username, email, password_hash, age, gender, firstname, lastname,  created_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-	`, username, email, password, age ,gender , firstname, lastname,  time.Now())
+	`, username, email, password, age, gender, firstname, lastname, time.Now())
 
 	return err
 }
@@ -91,7 +91,6 @@ func CheckLoginCredentials(identifier, password string) (bool, string, error) {
 	return true, email, nil
 }
 
-
 func GetAllUsers() ([]models.User, error) {
 	rows, err := database.DB.Query(`SELECT id, username FROM users`)
 	if err != nil {
@@ -116,4 +115,17 @@ func GetAllUsers() ([]models.User, error) {
 	}
 
 	return users, nil
+}
+
+// GetUserByID returns a user by ID
+func GetUserByID(userID int) (models.User, error) {
+	var u models.User
+	err := database.DB.QueryRow(`SELECT id, username FROM users WHERE id = ?`, userID).Scan(&u.ID, &u.Username)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return models.User{}, nil
+		}
+		return models.User{}, err
+	}
+	return u, nil
 }

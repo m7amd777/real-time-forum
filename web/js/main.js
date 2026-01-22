@@ -89,12 +89,12 @@ document.addEventListener("submit", async (e) => {
 
       const result = await res.json();
 
-       if (!res.ok) {
-        if(res.status === 405){
-            renderError({code : res.status, message: "Method not allowed"});
-        return;
+      if (!res.ok) {
+        if (res.status === 405) {
+          renderError({ code: res.status, message: "Method not allowed" });
+          return;
         }
-        
+
         alert(result.error);
         return;
       }
@@ -121,11 +121,11 @@ document.addEventListener("submit", async (e) => {
       const result = await res.json();
 
       if (!res.ok) {
-        if(res.status === 405){
-            renderError({code : res.status, message: "Method not allowed"});
-        return;
+        if (res.status === 405) {
+          renderError({ code: res.status, message: "Method not allowed" });
+          return;
         }
-        
+
         alert(result.error);
         return;
       }
@@ -151,11 +151,11 @@ document.addEventListener("submit", async (e) => {
       const result = await res.json();
 
       if (!res.ok) {
-        if(res.status === 405){
-            renderError({code : res.status, message: "Method not allowed"});
-        return;
+        if (res.status === 405) {
+          renderError({ code: res.status, message: "Method not allowed" });
+          return;
         }
-        
+
         alert(result.error);
         return;
       }
@@ -186,11 +186,11 @@ document.addEventListener("submit", async (e) => {
       const result = await res.json();
 
       if (!res.ok) {
-        if(res.status === 405){
-            renderError({code : res.status, message: "Method not allowed"});
-        return;
+        if (res.status === 405) {
+          renderError({ code: res.status, message: "Method not allowed" });
+          return;
         }
-        
+
         alert(result.error);
         return;
       }

@@ -1,6 +1,6 @@
 // router.js
 // Router logic here
-import { closeWS } from "./ws.js"
+import { closeWS, connectState } from "./ws.js"
 let activeUnmount = null; // stores cleanup function for current view
 let activePath = null;
 
@@ -183,7 +183,7 @@ export async function router() {
 
 
     if (!match) {
-        return renderError({code : 404, message: "Page Not Found"});
+        return renderError({ code: 404, message: "Page Not Found" });
     }
 
     if (match.route.protected) {
@@ -192,6 +192,39 @@ export async function router() {
             history.replaceState(null, "", "/login");
             closeWS();
             return router();
+        }
+    }
+
+    // Check if trying to access /chat/:uid with offline user
+    if (match.route.path === "/chat/:uid") {
+        const params = getParams(match);
+        const targetUserId = params.uid;
+        const onlineUsers = connectState.onlineUsers || [];
+
+        // Ensure current user is known
+        if (!connectState.currentUserId) {
+            try {
+                const res = await fetch("/api/me", { credentials: "include" });
+                if (res.ok) {
+                    const me = await res.json();
+                    connectState.currentUserId = me.id;
+                    connectState.currentUsername = me.username;
+                }
+            } catch (e) {
+                // ignore
+            }
+        }
+
+        if (!onlineUsers.includes(Number(targetUserId))) {
+            // User is offline, redirect to /chat with error
+            history.replaceState(null, "", "/chat");
+            return renderError({ code: 403, message: "This user is currently offline" });
+        }
+
+        // Prevent navigating to your own chat
+        if (connectState.currentUserId && Number(targetUserId) === Number(connectState.currentUserId)) {
+            history.replaceState(null, "", "/chat");
+            return renderError({ code: 400, message: "You cannot chat with yourself" });
         }
     }
 

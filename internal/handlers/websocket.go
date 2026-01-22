@@ -238,20 +238,27 @@ func (c *ChatClient) handleMessage(msg ClientEvent) {
 	// need to check if the user is online (later)
 
 	// forward it to the other client\
+
+	if c.id == msg.Recipient_id {
+		//cant send a message to yourself
+		return
+	}
 	// now := time.Now()
 	fmt.Println("handling the message to", msg.Recipient_id)
 	rc, ok := hub.get(int64(msg.Recipient_id))
-	if ok {
-		// recipient is offline, just save to database
-		rc.sendEvent(ServerEvent{
-			Type:           "message",
-			SenderID:       c.id,
-			RecipientID:    msg.Recipient_id,
-			ConversationID: msg.Conversation_id,
-			Content:        msg.Content,
-			Timestamp:      time.Now().UTC().Format(time.RFC3339),
-		})
+	if !ok {
+		// recipient is offline, just return entirely
+		return
 	}
+
+	rc.sendEvent(ServerEvent{
+		Type:           "message",
+		SenderID:       c.id,
+		RecipientID:    msg.Recipient_id,
+		ConversationID: msg.Conversation_id,
+		Content:        msg.Content,
+		Timestamp:      time.Now().UTC().Format(time.RFC3339),
+	})
 
 	err := queries.InsertMessage(1, c.id, msg.Content)
 	if err != nil {

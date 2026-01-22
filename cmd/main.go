@@ -32,6 +32,7 @@ func main() {
 
 	//for the chats
 	http.HandleFunc("/api/users", handlers.UsersHandler)
+	http.HandleFunc("/api/me", handlers.MeHandler)
 	http.HandleFunc("/ws/chat", handlers.ChatWSHandler)
 
 	http.HandleFunc("/api/conversations", handlers.ConversationsHandler)

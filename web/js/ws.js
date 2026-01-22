@@ -3,6 +3,8 @@ import { chatState } from './views/Chat.js'
 export const connectState = {
   allUsers: null,
   onlineUsers: null,
+  currentUserId: null,
+  currentUsername: null,
 }
 
 export const uiFlags = {
@@ -56,6 +58,18 @@ function lookupUsername(userId) {
 
 let allConversations = [];
 
+async function extractMe() {
+  try {
+    const res = await fetch("/api/me", { credentials: "include" });
+    if (!res.ok) return;
+    const me = await res.json();
+    connectState.currentUserId = me.id;
+    connectState.currentUsername = me.username;
+  } catch (err) {
+    console.error("Failed to fetch current user:", err);
+  }
+}
+
 async function extractUsers() {
   const res = await fetch("/api/users", {
     credentials: "include"
@@ -93,6 +107,11 @@ async function renderOnlineUsers(onlineUserIds) {
   // Always fetch conversations for ordering
   await extractConversations();
 
+  // Ensure we know the current user to filter self out
+  if (!connectState.currentUserId) {
+    await extractMe();
+  }
+
   const container = document.getElementById("globalOnlineUsers");
   const count = document.getElementById("onlineCount");
   if (!container) {
@@ -115,6 +134,10 @@ async function renderOnlineUsers(onlineUserIds) {
   const usersWithoutConversations = [];
 
   connectState.allUsers.forEach(user => {
+    // Skip current user from the online users list
+    if (connectState.currentUserId && Number(user.id) === Number(connectState.currentUserId)) {
+      return;
+    }
     if (conversationMap.has(user.id)) {
       usersWithConversations.push({
         ...user,
@@ -155,6 +178,21 @@ async function renderOnlineUsers(onlineUserIds) {
       `;
 
     li.addEventListener("click", async () => {
+      // Prevent clicking on offline users
+      if (!isOnline) {
+        showChatToast(`${u.username} is offline`);
+        return;
+      }
+      // Prevent clicking on offline users
+      if (!isOnline) {
+        showChatToast(`${u.username} is offline`);
+        return;
+      }
+      // Prevent clicking on yourself
+      if (connectState.currentUserId && Number(u.id) === Number(connectState.currentUserId)) {
+        showChatToast(`You cannot chat with yourself`);
+        return;
+      }
       uiFlags.targetUser = { id: u.id, username: u.username };
       try {
         uiFlags.activeConversationId = u.id;
