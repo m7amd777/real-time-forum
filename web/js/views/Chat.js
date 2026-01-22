@@ -4,6 +4,7 @@ import { connectState, connectWS, uiFlags } from '../ws.js';
 let ws = null;
 export const chatState = {
   currentRecipient: null,
+  currentRecipientName: null,
   currentConversation: null,
 };
 
@@ -98,7 +99,7 @@ export function mount(params) {
       // renderConversations(connectState.allConversations);
 
       // If user clicked from global list, auto-open chat with them
-      
+
       // if (uiFlags.targetUser) {
       //   const { id, username } = uiFlags.targetUser;
       //   uiFlags.targetUser = null;
@@ -115,7 +116,7 @@ export function mount(params) {
     return isNaN(d) ? ts : d.toLocaleString();
   }
 
-  function createMessageElement(content, direction, timestamp) {
+  function createMessageElement(content, direction, timestamp, username) {
     const div = document.createElement("div");
     div.classList.add("message", direction);
 
@@ -127,6 +128,15 @@ export function mount(params) {
     time.className = "message-time";
     time.textContent = formatTimestamp(timestamp);
 
+    const name = document.createElement("div");
+    name.className = "namehandler";
+    if (direction === "from") {
+      name.textContent = username || "Unknown";
+    } else {
+      name.textContent = "You";
+    }
+
+    div.appendChild(name)
     div.appendChild(text);
     div.appendChild(time);
     return div;
@@ -145,7 +155,6 @@ export function mount(params) {
         body: JSON.stringify({ user_id: id }),
         credentials: "include",
       });
-
       const data = await res.json();
       selectConversation(data.conversation_id, id, name);
       loadConversations();
@@ -161,6 +170,7 @@ export function mount(params) {
 
     chatState.currentConversation = convId;
     chatState.currentRecipient = String(userId);
+    chatState.currentRecipientName = name;
 
     document.querySelectorAll(".userContact").forEach(li =>
       li.classList.remove("active")
@@ -226,21 +236,29 @@ export function mount(params) {
         const fragment = document.createDocumentFragment();
         messages.reverse().forEach(msg => {
           const direction = Number(msg.sender_id) === Number(chatState.currentRecipient) ? "from" : "to";
-          const bubble = createMessageElement(msg.content, direction, msg.timestamp || msg.created_at);
+          const bubble = createMessageElement(msg.content, direction, msg.timestamp || msg.created_at, chatState.currentRecipientName);
           fragment.appendChild(bubble);
         });
+
+        // Store scroll height before adding messages
+        const scrollHeightBefore = chat.scrollHeight;
+
         const firstChild = chat.firstChild;
         if (firstChild) {
           chat.insertBefore(fragment, firstChild);
         } else {
           chat.appendChild(fragment);
         }
+
+        // Preserve scroll position: adjust scroll to account for new messages added above
+        const scrollHeightAfter = chat.scrollHeight;
+        chat.scrollTop = scrollHeightAfter - scrollHeightBefore;
       } else {
         // Initial load - reverse DESC to ASC (oldest to newest)
         chat.innerHTML = "";
         messages.reverse().forEach(msg => {
           const direction = Number(msg.sender_id) === Number(chatState.currentRecipient) ? "from" : "to";
-          const bubble = createMessageElement(msg.content, direction, msg.timestamp || msg.created_at);
+          const bubble = createMessageElement(msg.content, direction, msg.timestamp || msg.created_at, chatState.currentRecipientName);
           chat.appendChild(bubble);
         });
         chat.scrollTop = chat.scrollHeight;
@@ -302,7 +320,7 @@ export function mount(params) {
     entry.value = "";
 
     // locally add bubble immediately
-    const bubble = createMessageElement(text, "to", new Date().toISOString());
+    const bubble = createMessageElement(text, "to", new Date().toISOString(), chatState.currentRecipientName);
     chat.appendChild(bubble);
     chat.scrollTop = chat.scrollHeight;
   };

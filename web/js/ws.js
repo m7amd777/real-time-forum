@@ -264,7 +264,8 @@ export function connectWS() {
 
           if (canRenderInChat) {
             const direction = Number(data.sender_id) === Number(chatState.currentRecipient) ? "from" : "to";
-            const bubble = createMessageElement(data.content, direction, data.timestamp || data.created_at);
+            const username = lookupUsername(senderId) || "Unknown";
+            const bubble = createMessageElement(data.content, direction, data.timestamp || data.created_at, username);
             chatEl.appendChild(bubble);
             chatEl.scrollTop = chatEl.scrollHeight;
           } else {
@@ -332,7 +333,7 @@ export function closeWS(reason = "logout") {
 }
 
 //redundant type shi but letts keep it here for now----------------------------------------
-function createMessageElement(content, direction, timestamp) {
+function createMessageElement(content, direction, timestamp, username) {
   const div = document.createElement("div");
   div.classList.add("message", direction);
 
@@ -344,6 +345,15 @@ function createMessageElement(content, direction, timestamp) {
   time.className = "message-time";
   time.textContent = formatTimestamp(timestamp);
 
+  const name = document.createElement("div");
+  name.className = "namehandler";
+  if (direction === "from") {
+    name.textContent = username || "Unknown";
+  } else {
+    name.textContent = "You";
+  }
+
+  div.appendChild(name)
   div.appendChild(text);
   div.appendChild(time);
   return div;

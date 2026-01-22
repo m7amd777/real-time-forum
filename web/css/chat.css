@@ -165,6 +165,9 @@ ul#globalOnlineUsers {
 
 }
 
+.namehandler {
+    font-weight: bold;
+}
 
 /* If you keep your demo messages here temporarily */
 .usercard .from,
