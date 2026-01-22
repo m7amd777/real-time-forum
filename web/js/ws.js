@@ -3,6 +3,7 @@ import { chatState } from './views/Chat.js'
 export const connectState = {
   allUsers: null,
   onlineUsers: null,
+  allConversations: null,
   currentUserId: null,
   currentUsername: null,
 }
@@ -20,7 +21,12 @@ let lastUsersFetchTime = 0;
 const USER_FETCH_INTERVAL = 30000; // 30 seconds
 const TOAST_DURATION_MS = 4000;
 const TOAST_CONTAINER_ID = "chat-toast-container";
-//add reconnectors later
+
+// Reconnection state
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
+const BASE_RECONNECT_DELAY = 1000; // 1 second
+let reconnectTimeout = null;
 
 function ensureToastContainer() {
   let container = document.getElementById(TOAST_CONTAINER_ID);
@@ -56,8 +62,6 @@ function lookupUsername(userId) {
   return user ? user.username : null;
 }
 
-let allConversations = [];
-
 async function extractMe() {
   try {
     const res = await fetch("/api/me", { credentials: "include" });
@@ -89,8 +93,8 @@ async function extractConversations() {
       credentials: "include"
     });
     if (!res.ok) return [];
-    allConversations = await res.json();
-    return allConversations;
+    connectState.allConversations = await res.json();
+    return connectState.allConversations;
   } catch (err) {
     console.error("Failed to fetch conversations:", err);
     return [];
@@ -121,9 +125,9 @@ async function renderOnlineUsers(onlineUserIds) {
 
   // Create a map of user_id -> conversation (for users with conversations)
   const conversationMap = new Map();
-  console.log(allConversations)
-  if (allConversations) {
-    allConversations.forEach(conv => {
+  console.log(connectState.allConversations)
+  if (connectState.allConversations) {
+    connectState.allConversations.forEach(conv => {
       conversationMap.set(conv.user_id, conv);
     });
   }
@@ -221,7 +225,11 @@ export function connectWS() {
   ws = new WebSocket(`${proto}://${location.host}/ws/chat`);
 
   // Attach listeners RIGHT AWAY (before anything can happen)
-  ws.addEventListener("open", () => console.log("[ws] open"));
+  ws.addEventListener("open", () => {
+    console.log("[ws] open");
+    reconnectAttempts = 0; // Reset on successful connection
+  });
+
   ws.addEventListener("message", (e) => {
     console.log("[ws] message", e.data);
 
@@ -275,8 +283,32 @@ export function connectWS() {
       console.error("[ws] failed to parse message:", err);
     }
   });
-  ws.addEventListener("close", (e) => console.log("[ws] close", e.code, e.reason));
-  ws.addEventListener("error", (e) => console.log("[ws] error", e));
+
+  ws.addEventListener("close", (e) => {
+    console.log("[ws] close", e.code, e.reason);
+    ws = null;
+
+    // Attempt to reconnect with exponential backoff
+    if (reconnectAttempts < MAX_RECONNECT_ATTEMPTS) {
+      const delay = BASE_RECONNECT_DELAY * Math.pow(2, reconnectAttempts);
+      console.log(`[ws] attempting reconnection (attempt ${reconnectAttempts + 1}/${MAX_RECONNECT_ATTEMPTS}) in ${delay}ms`);
+      showChatToast("Connection lost. Reconnecting...");
+
+      if (reconnectTimeout) clearTimeout(reconnectTimeout);
+      reconnectTimeout = setTimeout(() => {
+        reconnectAttempts++;
+        connectWS();
+      }, delay);
+    } else {
+      console.error("[ws] max reconnection attempts reached");
+      showChatToast("Failed to reconnect. Please refresh the page.");
+    }
+  });
+
+  ws.addEventListener("error", (e) => {
+    console.log("[ws] error", e);
+    showChatToast("Connection error. Attempting to reconnect...");
+  });
 
   return ws;
 }
@@ -287,10 +319,16 @@ export function getWS() {
 
 
 export function closeWS(reason = "logout") {
-  if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+  if (reconnectTimeout) {
+    clearTimeout(reconnectTimeout);
+    reconnectTimeout = null;
+  }
+
+  if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
     ws.close(1000, reason);
   }
   ws = null;
+  reconnectAttempts = 0;
 }
 
 //redundant type shi but letts keep it here for now----------------------------------------

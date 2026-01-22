@@ -2,12 +2,36 @@ import { connectState, connectWS, uiFlags } from '../ws.js';
 
 // views/Chat.js
 let ws = null;
-let allUsers = [];
-let allConversations = [];
 export const chatState = {
   currentRecipient: null,
   currentConversation: null,
 };
+
+// Toast helper for user feedback
+function showChatToast(text) {
+  const TOAST_CONTAINER_ID = "chat-toast-container";
+  let container = document.getElementById(TOAST_CONTAINER_ID);
+  if (!container) {
+    container = document.createElement("div");
+    container.id = TOAST_CONTAINER_ID;
+    container.className = "chat-toast-container";
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement("div");
+  toast.className = "chat-toast";
+  toast.textContent = text;
+  container.appendChild(toast);
+
+  requestAnimationFrame(() => {
+    toast.classList.add("visible");
+  });
+
+  setTimeout(() => {
+    toast.classList.remove("visible");
+    setTimeout(() => toast.remove(), 180);
+  }, 4000);
+}
 
 export default async function ChatView(params) {
   return `
@@ -43,9 +67,10 @@ export function mount(params) {
   // LOAD DATA
   // =======================
   async function loadUsers() {
+    if (connectState.allUsers) return; // Skip if already loaded
     try {
       const res = await fetch("/api/users");
-      allUsers = await res.json();
+      connectState.allUsers = await res.json();
     } catch (err) {
       console.error("Load users error:", err);
     }
@@ -54,19 +79,31 @@ export function mount(params) {
 
   //load the conversations that are available
   async function loadConversations() {
+    if (connectState.allConversations) {
+      // If user clicked from global list, auto-open chat with them
+
+
+      // if (uiFlags.targetUser) {
+      //   const { id, username } = uiFlags.targetUser;
+      //   uiFlags.targetUser = null;
+      //   selectRecipient(id, username);
+      // }
+      return;
+    }
     try {
       const res = await fetch("/api/conversations");
       if (!res.ok) throw new Error("Failed to fetch conversations");
 
-      allConversations = await res.json();
-      // renderConversations(allConversations);
+      connectState.allConversations = await res.json();
+      // renderConversations(connectState.allConversations);
 
       // If user clicked from global list, auto-open chat with them
-      if (uiFlags.targetUser) {
-        const { id, username } = uiFlags.targetUser;
-        uiFlags.targetUser = null;
-        selectRecipient(id, username);
-      }
+      
+      // if (uiFlags.targetUser) {
+      //   const { id, username } = uiFlags.targetUser;
+      //   uiFlags.targetUser = null;
+      //   selectRecipient(id, username);
+      // }
     } catch (err) {
       console.error("Load conversations error:", err);
     }
@@ -225,6 +262,8 @@ export function mount(params) {
       loadMessages(chatState.currentConversation, messageOffset, true);
     }
   }, 300);
+  // Remove listener if it exists (prevents accumulation on remount)
+  chat.removeEventListener("scroll", handleChatScroll);
   chat.addEventListener("scroll", handleChatScroll);
 
 
@@ -240,8 +279,16 @@ export function mount(params) {
   const onSend = () => {
     const text = entry.value.trim();
     if (!text) return;
-    if (!ws || ws.readyState !== WebSocket.OPEN) return;
-    if (!chatState.currentRecipient) return alert("Select a user first");
+
+    if (!chatState.currentRecipient) {
+      showChatToast("Select a user first");
+      return;
+    }
+
+    if (!ws || ws.readyState !== WebSocket.OPEN) {
+      showChatToast("Connection unavailable. Please try again.");
+      return;
+    }
 
     const message = {
       type: "message",
@@ -260,6 +307,8 @@ export function mount(params) {
     chat.scrollTop = chat.scrollHeight;
   };
 
+  // Remove listener if it exists (prevents accumulation on remount)
+  sendBtn.removeEventListener("click", onSend);
   sendBtn.addEventListener("click", onSend);
 
   // =======================
@@ -271,7 +320,7 @@ export function mount(params) {
   if (params && params.uid) {
     // Wait for users to load, then select the target user
     setTimeout(() => {
-      const user = allUsers.find(x => x.id == params.uid);
+      const user = connectState.allUsers.find(x => x.id == params.uid);
       console.log("Target user from params:", user);
       console.log(params.uid)
       if (user) {

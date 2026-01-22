@@ -218,7 +218,10 @@ export async function router() {
         if (!onlineUsers.includes(Number(targetUserId))) {
             // User is offline, redirect to /chat with error
             history.replaceState(null, "", "/chat");
-            return renderError({ code: 403, message: "This user is currently offline" });
+            showChatToast("The user is disconnected from our connection")
+            navigateTo("/chat")
+            return
+            // return renderError({ code: 403, message: "This user is currently offline" });
         }
 
         // Prevent navigating to your own chat
@@ -302,3 +305,30 @@ export async function router() {
 
 //pathname the location is the currenturl we are going to. and we are checking if it matches
 // and once that shit matches, we mark it as match to one of our routes
+
+
+// Toast helper for user feedback
+function showChatToast(text) {
+    const TOAST_CONTAINER_ID = "chat-toast-container";
+    let container = document.getElementById(TOAST_CONTAINER_ID);
+    if (!container) {
+        container = document.createElement("div");
+        container.id = TOAST_CONTAINER_ID;
+        container.className = "chat-toast-container";
+        document.body.appendChild(container);
+    }
+
+    const toast = document.createElement("div");
+    toast.className = "chat-toast";
+    toast.textContent = text;
+    container.appendChild(toast);
+
+    requestAnimationFrame(() => {
+        toast.classList.add("visible");
+    });
+
+    setTimeout(() => {
+        toast.classList.remove("visible");
+        setTimeout(() => toast.remove(), 180);
+    }, 4000);
+}
