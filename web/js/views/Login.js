@@ -7,7 +7,7 @@ export default function LoginView() {
         </div>
 
         <form id="login-form" data-form="login" class="auth-form">
-          <input class="input" type="text" name="email" placeholder="Email" required />
+          <input class="input" type="text" name="email" placeholder="Email or Username" required />
           <input class="input" type="password" name="password" placeholder="Password" required />
 
           <button type="submit" class="btn-auth">Login</button>
